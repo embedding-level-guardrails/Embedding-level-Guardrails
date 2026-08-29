@@ -1,0 +1,7 @@
+model,split,variant,cos_intra_safe,cos_intra_harm,cos_inter,cos_random_pair,gap,gap_std_units,centroid_cos
+e5-small-v2,test,raw,0.772,0.787,0.7699,0.7763,0.0096,0.2696,0.9858
+e5-small-v2,test,centered,0.027,0.0122,-0.0246,-0.0032,0.0442,0.3774,-0.9928
+ettin-68m,test,raw,0.8642,0.9586,0.902,0.9161,0.0093,0.0887,0.9904
+ettin-68m,test,centered,0.031,0.1206,-0.0658,0.0162,0.1417,0.3899,-0.9432
+mmbert-small,test,raw,0.9245,0.9656,0.9397,0.9465,0.0054,0.106,0.9941
+mmbert-small,test,centered,0.0256,0.0535,-0.0396,0.0041,0.0791,0.3618,-0.8939

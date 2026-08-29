@@ -1,0 +1,20 @@
+# Ядро
+torch>=2.2
+transformers>=4.48        # ModernBERT-архитектура (ettin, mmBERT) поддерживается с 4.48
+datasets>=2.19
+huggingface-hub>=0.23
+sentencepiece>=0.2        # токенизатор DeBERTa-v3 (Prompt Guard 2)
+protobuf>=4.25            # нужен при конвертации sentencepiece-токенизатора
+
+# Анализ и визуализация
+numpy>=1.26
+pandas>=2.2
+scikit-learn>=1.4
+matplotlib>=3.8
+umap-learn>=0.5           # опционально: без него 04_rq1_viz просто пропустит UMAP
+pyyaml>=6.0
+tabulate>=0.9             # md-таблицы в отчёте
+tqdm>=4.66
+
+# Разработка
+pytest>=8.0

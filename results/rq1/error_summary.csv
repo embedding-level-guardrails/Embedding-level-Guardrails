@@ -1,0 +1,4 @@
+model,max_cross_class_cosine,mean_top_pair_cosine,top_confused_category,n_false_positives_listed,n_false_negatives_listed
+e5-small-v2,0.9298,0.8758,Criminal Planning/Confessions,1,30
+ettin-68m,0.9908,0.9876,Criminal Planning/Confessions,1,30
+mmbert-small,0.9888,0.9863,Criminal Planning/Confessions,1,30

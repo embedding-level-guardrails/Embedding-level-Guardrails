@@ -1,0 +1,4 @@
+model,split,mean_random_cosine,pc1_explained_var,top10_explained_var,direction_auc_roc,direction_cohens_d,direction_norm,direction_vs_pc1_cos,silhouette_label_cosine,davies_bouldin_label,ari_k2,nmi_k2,ari_k8,nmi_k8
+e5-small-v2,test,0.7763,0.057,0.3015,0.9065,1.8654,1.1474,0.8367,0.048,6.253,0.1292,0.0924,0.1049,0.1562
+ettin-68m,test,0.9161,0.5569,0.7307,0.7649,0.9938,21.3804,0.9923,0.1867,2.5898,0.1469,0.1215,0.0891,0.1161
+mmbert-small,test,0.9465,0.3081,0.5946,0.7809,0.9824,6.8647,0.9439,0.1441,3.7394,0.0927,0.1543,0.0348,0.0798

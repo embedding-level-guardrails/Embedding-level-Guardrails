@@ -1,0 +1,68 @@
+# RQ1: baseline-разделимость safe/harm на frozen-энкодерах.
+seed: 42
+
+paths:
+  processed: data/processed
+  embeddings: artifacts/embeddings
+  results: results
+  figures: results/figures
+
+dataset:
+  name: aegis
+  hf_id: nvidia/Aegis-AI-Content-Safety-Dataset-1.0
+  # user_message | llm_response | combined | multi_turn | all
+  # По умолчанию только промты пользователя: это тот вход, который реально видит guardrail.
+  text_types: [user_message]
+  # Что делать с классом "Needs Caution": exclude | safe | harm
+  # exclude — чистый бинарный baseline; safe = permissive, harm = defensive (как в статье AEGIS).
+  caution_policy: exclude
+  min_chars: 3
+  max_chars: 8000
+  val_fraction: 0.1
+
+encoders:
+  - key: ettin-68m
+    hf_id: jhu-clsp/ettin-encoder-68m
+    pooling: mean
+    max_length: 512
+
+  - key: mmbert-small
+    hf_id: jhu-clsp/mmBERT-small
+    pooling: mean
+    max_length: 512
+
+  - key: e5-small-v2
+    hf_id: intfloat/e5-small-v2
+    pooling: mean
+    max_length: 512
+    # e5 обучалась с префиксами; для классификации/кластеризации авторы используют "query: ".
+    prefix: "query: "
+
+  # - key: prompt-guard-2-86m
+  #   hf_id: meta-llama/Llama-Prompt-Guard-2-86M
+  #   pooling: cls
+  #   max_length: 512      # жёсткий предел mDeBERTa-v3
+  #   head: seqcls         # дополнительно снимаем вероятность MALICIOUS с родной головы
+  #   gated: true          # нужен принятый лицензионный запрос + HF_TOKEN
+
+embed:
+  batch_size: 64
+  device: auto           # auto | cpu | cuda | mps
+  layer: -1              # -1 = последний слой; можно перебрать [-1, -4, -8] для layer-wise анализа
+
+analysis:
+  normalize: true        # L2-нормировка эмбеддингов перед анализом
+  similarity:
+    sample_per_class: 2000
+  probe:
+    c_grid: [0.01, 0.1, 1.0, 10.0]
+    class_weight: balanced
+    fpr_target: 0.01     # для TPR@FPR=1%
+    knn_k: 15
+  geometry:
+    kmeans_k: [2, 8]
+
+viz:
+  methods: [pca, tsne, umap]
+  n_points: 3000
+  split: test

@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+data/
+artifacts/
+results/figures/
+results/**/*.npy
+results/rq1/errors/
+
+!results/rq1/*.csv
+!results/rq1/REPORT.md
