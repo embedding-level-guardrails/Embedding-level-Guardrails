@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.data.build_pairs import (
+from rq4_training_pairs.src.data.build_pairs import (
     build_jailbreak_pairs,
     build_paraphrase_pairs,
     build_safe_harm_pairs,
