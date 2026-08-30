@@ -29,7 +29,7 @@ jobs:
       - name: Test (pytest)
         run: |
           if find . -path ./.git -prune -o -name 'test_*.py' -print -o -name '*_test.py' -print | grep -q .; then
-            pytest
+            python -m pytest
           else
             echo "No tests found yet, skipping."
           fi
