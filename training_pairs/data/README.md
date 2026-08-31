@@ -1,6 +1,8 @@
-# RQ4 (п.4 плана): training pairs — safe/harm contrast, paraphrase, jailbreak variant
+# Training pairs — safe/harm contrast, paraphrase, jailbreak variant
 
-Собрано скриптом `rq4_training_pairs/src/data/build_pairs.py` из двух источников:
+Данные для RQ3 (contrastive-дообучение энкодера).
+
+Собрано скриптом `training_pairs/src/data/build_pairs.py` из двух источников:
 
 - **AEGIS 2.0** (`nvidia/Aegis-AI-Content-Safety-Dataset-2.0`, train split, 30k
   промптов с бинарной разметкой `safe`/`unsafe` и категориями нарушений).
@@ -31,12 +33,12 @@
 | jailbreak_variant     | 500  |
 | **итого**             | **2000** |
 
-Полная разбивка по категориям — в `rq4_training_pairs/data/processed/manifest.json`,
+Полная разбивка по категориям — в `training_pairs/data/processed/manifest.json`,
 который генерируется вместе с датасетом при каждом запуске.
 
 Размеры и seed настраиваются через CLI (запускать из корня репозитория):
 ```bash
-python -m rq4_training_pairs.src.data.build_pairs \
+python -m training_pairs.src.data.build_pairs \
   --n-safe-harm 1000 --n-paraphrase 500 --n-jailbreak 500 \
   --templates-per-behavior 5 --seed 42
 ```
