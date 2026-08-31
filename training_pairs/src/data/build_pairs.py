@@ -1,5 +1,5 @@
 """Build training pairs (safe/harm contrast, paraphrase, jailbreak variant)
-from AEGIS 2.0 and HarmBench for RQ4 (п.4 плана: сбор пар для обучения).
+from AEGIS 2.0 and HarmBench — data prep for RQ3 (contrastive fine-tuning).
 
 Pair types
 ----------
@@ -21,7 +21,7 @@ jailbreak_variant:
     "harm" by intent — this pair type tests whether an encoder is fooled by
     adversarial surface style into looking safe.
 
-Sizes are fixed via CLI defaults (documented in rq4_training_pairs/data/README.md)
+Sizes are fixed via CLI defaults (documented in training_pairs/data/README.md)
 so every run of this script with the default seed reproduces the same dataset sizes.
 """
 
@@ -37,7 +37,7 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from rq4_training_pairs.src.data.sources import (
+from training_pairs.src.data.sources import (
     load_aegis,
     load_harmbench_behaviors,
     load_jailbreak_templates,
