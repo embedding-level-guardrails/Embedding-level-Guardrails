@@ -1,17 +1,14 @@
-# RQ1: геометрия frozen-энкодеров
+# RQ1: baseline разделимость без дообучения
 
-**Вопрос:** разделимы ли safe/harm концепты в пространстве эмбеддингов
-существующих encoder-моделей без дообучения?
-
-**Статус:** in progress
-**Ответственный:** Дарья
+Отчет: https://docs.google.com/document/d/1C7yne8fP11DkqNnEQTwv8ZzR-l4glkCi24rabQEuxf0/edit?usp=sharing
 
 ## Что входит
 
-- cosine similarity внутри классов vs между классами
+- расстояние внутри классов vs между классами
+- PCA анализ
 - logistic probe над frozen-эмбеддингами
-- UMAP/t-SNE визуализация
-- кластеризация (kmeans/hdbscan)
+- Fisher Discriminant Ratio
+
 
 ## Структура (заполнять по мере переноса из Colab)
 
@@ -25,14 +22,5 @@ rq1_geometry/
 
 ## Ноутбуки (Colab, будут перенесены сюда)
 
-- GLiNER + комментарии: https://colab.research.google.com/drive/1IEiUNCBUg0to-Xb7e3nvZ6kn3fe69gcW
 - t-SNE/UMAP + kmeans/hdbscan по датасетам и моделям: https://colab.research.google.com/drive/1JCKwxV4ougLRQdIvwQKjkV-yGg96vd2k
 - Прогон по WildGuardMix: https://colab.research.google.com/drive/1CMMueCQOI3igLGTnPSqexzq2zKu3bwIQ
-- Обновлённый ноутбук: https://colab.research.google.com/drive/1qx9U5nk5ojcYjXGeV31uKxLXGBDT7Xht
-
-## Модели
-
-- ettin-encoder-68m
-- mmBERT-small
-- e5-small-v2
-- Llama-Prompt-Guard-2-86M (референс-классификатор)
