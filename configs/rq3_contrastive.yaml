@@ -1,0 +1,68 @@
+# RQ3: contrastive-дообучение e5-small-v2 против classification head.
+# Сравнение контролируемое: у обеих веток один энкодер, одна голова и одни и те же
+# тексты (texts_*.jsonl из шага 07), различается только objective.
+seed: 42
+
+paths:
+  processed: data/processed
+  embeddings: artifacts/embeddings
+  results: results
+  figures: results/figures
+
+dataset:
+  name: aegis
+  hf_id: nvidia/Aegis-AI-Content-Safety-Dataset-1.0
+  text_types: [user_message]
+  caution_policy: exclude
+  min_chars: 3
+  max_chars: 8000
+  val_fraction: 0.1
+
+encoders:
+  - key: e5-small-v2
+    hf_id: intfloat/e5-small-v2
+    pooling: mean
+    max_length: 512
+    prefix: "query: "
+
+pairs:
+  name: aegis_harmbench_v1
+  # Пусто = все типы. Сюда же кладётся подмножество для абляции RQ2.
+  types: []
+
+training:
+  objective: contrastive        # contrastive | classification | joint
+  loss: info_nce                # info_nce | supervised_contrastive | triplet_margin
+  temperature: 0.05
+  margin: 0.2
+
+  epochs: 2
+  batch_size: 32
+  eval_batch_size: 128
+  lr: 2.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  max_grad_norm: 1.0
+  grad_accum_steps: 1
+
+  ce_weight: 1.0
+  contrastive_weight: 1.0
+
+  # >0 включает KL-якорь к замороженной базовой модели (задел под RQ4:
+  # ограничение деградации общей семантической структуры).
+  kl_weight: 0.0
+  kl_temperature: 0.1
+
+  eval_every: 200
+  log_every: 20
+  target_fpr: 0.01
+
+  device: auto
+  output_dir: artifacts/runs
+
+mlflow:
+  enabled: true
+  # Файловый бэкенд (file:./mlruns) с MLflow 3.x переведён в maintenance mode и
+  # падает без MLFLOW_ALLOW_FILE_STORE=true. Локально держим sqlite.
+  tracking_uri: sqlite:///mlflow.db
+  experiment: eguard-rq3

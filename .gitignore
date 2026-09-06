@@ -4,8 +4,11 @@ __pycache__/
 .pytest_cache/
 .ipynb_checkpoints/
 
-data/
-artifacts/
+/data/
+/artifacts/
+/mlruns/
+/mlartifacts/
+mlflow.db
 results/figures/
 results/**/*.npy
 results/rq1/errors/

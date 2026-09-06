@@ -1,0 +1,22 @@
+{
+  "encoder": "e5-small-v2",
+  "target_fpr": 0.01,
+  "holdout": {
+    "dataset": "aegis",
+    "n": 308,
+    "harm_rate": 0.597
+  },
+  "ood": {
+    "dataset": "toxicchat",
+    "config": "toxicchat0124",
+    "label_field": "any",
+    "n": 2853,
+    "harm_rate": 0.127
+  },
+  "models": [
+    "e5-small-v2-frozen",
+    "rq3-classification",
+    "rq3-contrastive",
+    "rq3-joint"
+  ]
+}

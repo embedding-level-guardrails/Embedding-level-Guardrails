@@ -125,6 +125,39 @@ def logistic_probe(
     return {"metrics": metrics, "test_scores": scores, "model": clf}
 
 
+def fit_transfer_probe(
+    x_train: np.ndarray, y_train: np.ndarray,
+    x_val: np.ndarray, y_val: np.ndarray,
+    c_grid: list[float] | None = None,
+    class_weight: str | None = "balanced",
+    normalize: bool = True,
+    seed: int = 42,
+):
+    """Проб для LODO: обучается ТОЛЬКО на train, val остаётся для калибровки порога.
+
+    Отличие от `logistic_probe` принципиальное. Тот в конце дообучается на train+val,
+    что даёт чуть более сильную модель, но делает val непригодным для выставления
+    рабочего порога. Для переноса на OOD порог обязан быть выставлен на данных,
+    которых модель не видела, иначе замер FPR при переносе ничего не значит.
+
+    Возвращает (clf, scores_val) — дальше порог берётся из scores_val.
+    """
+    c_grid = c_grid or [0.01, 0.1, 1.0, 10.0]
+    xtr, xva = (_prep(a, normalize) for a in (x_train, x_val))
+
+    best_c, best_auc = c_grid[0], -np.inf
+    for c in c_grid:
+        clf = LogisticRegression(C=c, max_iter=3000, class_weight=class_weight, random_state=seed)
+        clf.fit(xtr, y_train)
+        auc = roc_auc_score(y_val, clf.predict_proba(xva)[:, 1])
+        if auc > best_auc:
+            best_c, best_auc = c, auc
+
+    clf = LogisticRegression(C=best_c, max_iter=3000, class_weight=class_weight, random_state=seed)
+    clf.fit(xtr, y_train)
+    return clf, clf.predict_proba(xva)[:, 1], {"best_C": best_c, "val_auroc": float(best_auc)}
+
+
 def knn_probe(
     x_train: np.ndarray, y_train: np.ndarray, x_test: np.ndarray, y_test: np.ndarray,
     k: int = 15, normalize: bool = True, target_fpr: float = 0.01,

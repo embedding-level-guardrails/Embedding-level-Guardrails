@@ -1,0 +1,72 @@
+# RQ2: сборка обучающих пар из AEGIS + HarmBench.
+# Размеры зафиксированы здесь — это и есть "зафиксировать размеры" из плана.
+seed: 42
+
+paths:
+  processed: data/processed
+  embeddings: artifacts/embeddings
+  results: results
+  figures: results/figures
+
+dataset:
+  name: aegis
+  hf_id: nvidia/Aegis-AI-Content-Safety-Dataset-1.0
+  text_types: [user_message]
+  caution_policy: exclude
+  min_chars: 3
+  max_chars: 8000
+  val_fraction: 0.1
+
+pairs:
+  name: aegis_harmbench_v1
+
+  harmbench:
+    # В обучение идёт только val (80 behaviors). test (320) держим в холде:
+    # HarmBench — оценочный бенчмарк, и он нужен целым для OOD/LODO-оценки.
+    train_split: val
+    heldout_split: test
+    cache_dir: data/raw/harmbench
+    include_context: false
+    drop_categories: []          # напр. [copyright], если авторские кейсы не нужны
+
+  # Доля пар, у которых якорь — безопасный текст. Ровно половина: иначе обучение
+  # стягивает только harm-кластер и ничего не говорит о структуре safe-области.
+  safe_anchor_fraction: 0.5
+
+  # Короткие реплики диалога в якоря парафраз не берём: обёртки вежливости
+  # превращают их в бессмыслицу вроде "Could you please great let's hear one?".
+  paraphrase_min_chars: 25
+
+  # Какие семейства трансформаций разрешены (null = все из реестра).
+  paraphrase_variants: null
+  jailbreak_variants: null
+
+  # safe | wrapped_safe | mix — что брать негативом к jailbreak-варианту.
+  # mix: половина негативов — безопасный текст в ТОЙ ЖЕ обёртке, чтобы модель не
+  # выучила саму обёртку как признак вреда.
+  jailbreak_negative: mix
+
+  # Внешние (например LLM-) парафразы: jsonl {"id": ..., "variants": [...]}.
+  external_variants: null
+
+  # Майнинг benign twins поверх замороженного энкодера из RQ1.
+  mining:
+    encoder: e5-small-v2
+
+  # Зафиксированные размеры по сплитам и типам пар.
+  sizes:
+    train:
+      safe_harm_contrast: 8000
+      paraphrase: 4000
+      jailbreak_variant: 4000
+      benign_twin: 1500
+    val:
+      safe_harm_contrast: 800
+      paraphrase: 400
+      jailbreak_variant: 400
+      benign_twin: 150
+    test:
+      safe_harm_contrast: 800
+      paraphrase: 400
+      jailbreak_variant: 400
+      benign_twin: 150

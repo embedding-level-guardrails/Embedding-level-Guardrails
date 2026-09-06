@@ -29,11 +29,15 @@ class DatasetSpec:
     min_chars: int = 3 
     max_chars: int = 8000
     val_fraction: float = 0.1
+    # Ниже — поля отдельных датасетов; AEGIS их не использует.
+    config: str | None = None            # HF config (у ToxicChat это toxicchat0124)
+    label_field: str = "toxicity"        # toxicity | jailbreaking | any
+    require_human_annotation: bool = True
 
 
 @dataclass
 class Paths:
-    processed: Paths = Path("data/processed")
+    processed: Path = Path("data/processed")
     embeddings: Path = Path("artifacts/embeddings")
     results: Path = Path("results")
     figures: Path = Path("results/figures")
@@ -46,12 +50,15 @@ class Paths:
 @dataclass
 class Config:
     seed: int = 42
-    paths: Paths = field(default_factory=Path)
+    paths: Paths = field(default_factory=Paths)
     dataset: DatasetSpec = field(default_factory=DatasetSpec)
     encoders: list[EncoderSpec] = field(default_factory=list)
     embed: dict[str, Any] = field(default_factory=dict)
     analysis: dict[str, Any] = field(default_factory=dict)
     viz: dict[str, Any] = field(default_factory=dict)
+    pairs: dict[str, Any] = field(default_factory=dict)
+    training: dict[str, Any] = field(default_factory=dict)
+    mlflow: dict[str, Any] = field(default_factory=dict)
     raw: dict[str, Any] = field(default_factory=dict)
 
     def encoder(self, key: str) -> EncoderSpec:
@@ -76,8 +83,11 @@ def load_config(path: str | Path) -> Config:
         paths=Paths(**raw.get("paths", {})),
         dataset=DatasetSpec(**raw.get("dataset", {})),
         encoders=[EncoderSpec(**e) for e in raw.get("encoders", [])],
-        embed=raw.get("emged", {}),
+        embed=raw.get("embed", {}),
         analysis=raw.get("analysis", {}),
         viz=raw.get("viz", {}),
+        pairs=raw.get("pairs", {}),
+        training=raw.get("training", {}),
+        mlflow=raw.get("mlflow", {}),
         raw=raw,
     )

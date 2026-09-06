@@ -1,0 +1,22 @@
+# OOD-набор для LODO: обучались на AEGIS, тестируем на реальном трафике ToxicChat.
+seed: 42
+
+paths:
+  processed: data/processed
+  embeddings: artifacts/embeddings
+  results: results
+  figures: results/figures
+
+dataset:
+  name: toxicchat
+  hf_id: lmsys/toxic-chat
+  config: toxicchat0124
+  # toxicity | jailbreaking | any. `any` ближе к тому, что должен ловить guardrail:
+  # jailbreak-промт не всегда токсичен по формулировке, но пропускать его нельзя.
+  label_field: any
+  require_human_annotation: true
+  min_chars: 3
+  max_chars: 8000
+  # val от train не отрезаем: ToxicChat используется только для оценки,
+  # ни порог, ни гиперпараметры на нём не подбираются.
+  val_fraction: 0.0
