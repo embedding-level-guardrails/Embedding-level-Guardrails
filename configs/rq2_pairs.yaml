@@ -18,13 +18,17 @@ dataset:
   val_fraction: 0.1
 
 pairs:
-  name: aegis_harmbench_v1
+  name: aegis_harmbench_v2
 
   harmbench:
-    # В обучение идёт только val (80 behaviors). test (320) держим в холде:
-    # HarmBench — оценочный бенчмарк, и он нужен целым для OOD/LODO-оценки.
-    train_split: val
-    heldout_split: test
+    # Все 400 behaviors идут в обучение. Раньше здесь был только val (80), а test
+    # (320) лежал в холде как кандидат в OOD-набор. После того как OOD-оценка
+    # (LODO) переехала на ToxicChat, держать HarmBench в резерве незачем: на 80
+    # затравках каждая переиспользовалась в ~54 парах, и разнообразия не было.
+    # Если понадобится вторая OOD-оценка на самом HarmBench — вернуть train_split:
+    # val и heldout_split: test.
+    train_split: all
+    heldout_split: null
     cache_dir: data/raw/harmbench
     include_context: false
     drop_categories: []          # напр. [copyright], если авторские кейсы не нужны

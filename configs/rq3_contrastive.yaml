@@ -26,7 +26,7 @@ encoders:
     prefix: "query: "
 
 pairs:
-  name: aegis_harmbench_v1
+  name: aegis_harmbench_v2
   # Пусто = все типы. Сюда же кладётся подмножество для абляции RQ2.
   types: []
 
