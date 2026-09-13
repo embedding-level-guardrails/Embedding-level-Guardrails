@@ -1,0 +1,21 @@
+[project]
+name = "ettin-based-classifier"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Daria Kaigorodtseva", email = "daria.kay000@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "huggingface-hub~=1.30",
+    "jupyter>=1.1.1",
+    "polars~=1.44",
+]
+
+[project.scripts]
+ettin-based-classifier = "ettin_based_classifier:main"
+
+[build-system]
+requires = ["uv_build>=0.12.10,<0.13.0"]
+build-backend = "uv_build"
