@@ -3,3 +3,8 @@ __pycache__/
 .venv/
 venv/
 .idea/
+.env
+.DS_Store
+rq3_training/checkpoints/
+rq3_training/results/*.pt
+rq3_training/.cache/
