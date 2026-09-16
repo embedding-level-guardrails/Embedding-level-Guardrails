@@ -1,0 +1,52 @@
+seed: 42
+
+data:
+  path: ../../training_pairs/data/processed/pairs.jsonl
+
+model:
+  model_name: jhu-clsp/ettin-encoder-68m
+  transformation_head: projection
+  hidden_dim: 1024
+  output_dim: 128
+
+tokenizer:
+  max_length: 512
+  pad_to_multiple_of: 8
+
+sampler:
+  cat_number: 4 # max number of categories in one batch
+  samples_per_cat: 8 # number of samples in one category
+
+data_split:
+  val_samples_per_cat: 10 # number of samples in one category in validation
+
+loss:
+  temperature: 0.1
+
+optimizer:
+  lr: 0.00005
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
+  eps: 1.0e-8
+
+training:
+  epochs: 5
+  device: auto
+  precision: auto # auto, fp32, fp16, or bf16
+  max_grad_norm: 1.0
+  gradient_checkpointing: true
+  log_every_steps: 50
+  save_every_epochs: 1
+  val_samples_per_cat: 10 # number of samples in one category in validation
+  output_dir: ${hydra:runtime.output_dir}
+
+loader:
+  num_workers: 0
+  pin_memory: true
+  persistent_workers: true
+
+hydra:
+  job:
+    chdir: false
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}

@@ -1,5 +1,5 @@
 [project]
-name = "ettin-based-classifier"
+name = "ettin_guardrails"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -8,13 +8,21 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
-    "huggingface-hub~=1.30",
+    "bokeh>=3.4,<4",
+    "datasets>=3,<5",
+    "numpy>=1.26,<3",
+    "scikit-learn>=1.5,<2",
+    "huggingface-hub~=1.31",
+    "hydra-core~=1.3",
     "jupyter>=1.1.1",
+    "omegaconf>=2.3.1",
     "polars~=1.44",
+    "torch~=2.14",
+    "transformers~=5.17",
 ]
 
 [project.scripts]
-ettin-based-classifier = "ettin_based_classifier:main"
+ettin-guardrails = "ettin_guardrails.train:main"
 
 [build-system]
 requires = ["uv_build>=0.12.10,<0.13.0"]
