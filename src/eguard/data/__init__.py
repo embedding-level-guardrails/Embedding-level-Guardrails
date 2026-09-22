@@ -12,9 +12,13 @@ from pathlib import Path
 from types import ModuleType
 
 from ..utils import read_jsonl
-from . import aegis, toxicchat
+from . import aegis, toxicchat, wildguardmix
 
-LOADERS: dict[str, ModuleType] = {"aegis": aegis, "toxicchat": toxicchat}
+LOADERS: dict[str, ModuleType] = {
+    "aegis": aegis,
+    "toxicchat": toxicchat,
+    "wildguardmix": wildguardmix,
+}
 
 
 def get_loader(name: str) -> ModuleType:
@@ -37,4 +41,4 @@ def load_split(root: str | Path, dataset: str, split: str) -> list[dict]:
     return read_jsonl(path)
 
 
-__all__ = ["aegis", "get_loader", "load_split", "split_path", "toxicchat"]
+__all__ = ["aegis", "get_loader", "load_split", "split_path", "toxicchat", "wildguardmix"]

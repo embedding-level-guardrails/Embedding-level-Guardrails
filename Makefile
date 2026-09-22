@@ -2,8 +2,10 @@ CONFIG ?= configs/rq1.yaml
 PAIRS_CONFIG ?= configs/rq2_pairs.yaml
 RQ3_CONFIG ?= configs/rq3_contrastive.yaml
 OOD_CONFIG ?= configs/ood_toxicchat.yaml
+WGM_CONFIG ?= configs/rq2_pairs_wildguardmix.yaml
+WGM_RQ3_CONFIG ?= configs/rq3_wildguardmix.yaml
 
-.PHONY: setup data ood-data embed rq1 pairs rq3 lodo rq3-ablation mlflow test smoke smoke-rq3 clean
+.PHONY: setup data ood-data wgm-pairs rq3-wgm lodo-wgm embed rq1 pairs rq3 lodo rq3-ablation mlflow test smoke smoke-rq3 clean
 
 setup:
 	pip install -r requirements.txt
@@ -14,6 +16,13 @@ data:
 # OOD-набор для LODO: обучаемся на AEGIS, тестируем на реальном трафике ToxicChat
 ood-data:
 	python scripts/00_prepare_data.py --config $(OOD_CONFIG)
+
+# WildGuardMix: данные -> эмбеддинги e5 для майнинга benign twins -> пары.
+# Датасет gated: нужен принятый запрос доступа и HF_TOKEN.
+wgm-pairs:
+	python scripts/00_prepare_data.py --config $(WGM_CONFIG)
+	python scripts/01_embed.py --config $(WGM_CONFIG)
+	python scripts/07_build_pairs.py --config $(WGM_CONFIG)
 
 embed:
 	python scripts/01_embed.py --config $(CONFIG)
@@ -31,6 +40,16 @@ rq3:
 	python scripts/08_train_contrastive.py --config $(RQ3_CONFIG) --objective contrastive    --run-name rq3-contrastive
 	python scripts/08_train_contrastive.py --config $(RQ3_CONFIG) --objective joint          --run-name rq3-joint
 	$(MAKE) lodo
+
+# RQ3 на WildGuardMix: три objective + LODO. Результат: results/wildguardmix/rq3/LODO.md
+rq3-wgm:
+	python scripts/08_train_contrastive.py --config $(WGM_RQ3_CONFIG) --objective classification --run-name wgm-classification
+	python scripts/08_train_contrastive.py --config $(WGM_RQ3_CONFIG) --objective contrastive    --run-name wgm-contrastive
+	python scripts/08_train_contrastive.py --config $(WGM_RQ3_CONFIG) --objective joint          --run-name wgm-joint
+	$(MAKE) lodo-wgm
+
+lodo-wgm:
+	python scripts/09_eval_lodo.py --config $(WGM_RQ3_CONFIG) --ood-config $(OOD_CONFIG)
 
 # Сравнение на hold-out (AEGIS test) и OOD (ToxicChat) при пороге с AEGIS val.
 lodo:

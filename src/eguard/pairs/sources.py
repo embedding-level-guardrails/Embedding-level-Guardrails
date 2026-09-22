@@ -90,13 +90,21 @@ def load_harmbench(
     return records
 
 
-def load_aegis_records(processed_root: str | Path, dataset: str, split: str) -> list[dict]:
-    """Нормализованный AEGIS с диска + пометка источника."""
+def load_processed_records(processed_root: str | Path, dataset: str, split: str) -> list[dict]:
+    """Нормализованные записи любого датасета с диска + пометка источника.
+
+    Источник по умолчанию — имя датасета: так в парах видно, откуда пришёл якорь
+    (aegis / wildguardmix / harmbench), и абляции по источнику остаются возможны.
+    """
     from ..data import load_split
 
     records = []
     for record in load_split(processed_root, dataset, split):
         record = dict(record)
-        record.setdefault("source", "aegis")
+        record.setdefault("source", dataset)
         records.append(record)
     return records
+
+
+# Старое имя: пайплайн начинался с одного AEGIS. Оставлено для совместимости.
+load_aegis_records = load_processed_records

@@ -28,6 +28,8 @@ logger = get_logger(__name__)
 class PairContext:
     """Всё, из чего строятся пары для одного сплита."""
     split: str
+    # Нормализованные записи основного датасета сплита. Имя поля историческое:
+    # сюда попадает AEGIS или WildGuardMix — что указано в dataset.name конфига.
     aegis: list[dict]
     harmbench: list[dict] = field(default_factory=list)
     rng: np.random.Generator = field(default_factory=lambda: np.random.default_rng(42))
@@ -146,6 +148,29 @@ def build_paraphrase(ctx: PairContext, n: int) -> list[dict]:
     return out
 
 
+def jailbreak_seeds(ctx: PairContext) -> list[dict]:
+    """Вредоносные затравки, на которые навешиваются jailbreak-обёртки.
+
+    `jailbreak_seeds` в конфиге:
+      harmbench — behaviors HarmBench, а если их нет — harm-пул датасета
+                  (исходное поведение, с ним собраны пары AEGIS);
+      dataset   — только vanilla-вредоносные промты датасета;
+      both      — HarmBench + vanilla-вредоносные промты датасета.
+    Для датасета берутся только НЕ-adversarial промты: оборачивать в шаблон то,
+    что уже является jailbreak-переформулировкой (WildGuardMix), бессмысленно.
+    У AEGIS флага adversarial нет, там все промты считаются vanilla.
+    """
+    mode = str(ctx.cfg.get("jailbreak_seeds", "harmbench"))
+    vanilla = [r for r in ctx.pool(1, include_harmbench=False) if not r.get("adversarial")]
+    if mode == "harmbench":
+        return ctx.harmbench or ctx.pool(1)
+    if mode == "dataset":
+        return vanilla
+    if mode == "both":
+        return ctx.harmbench + vanilla
+    raise ValueError(f"Unknown jailbreak_seeds {mode!r} (harmbench | dataset | both)")
+
+
 def build_jailbreak_variant(ctx: PairContext, n: int) -> list[dict]:
     """Обёртка не делает вредоносный запрос безопасным.
 
@@ -155,7 +180,7 @@ def build_jailbreak_variant(ctx: PairContext, n: int) -> list[dict]:
     умолчанию половина негативов — это БЕЗОПАСНЫЙ текст в той же самой обёртке:
     так единственный различающий сигнал остаётся содержательным.
     """
-    harm_seed = ctx.harmbench or ctx.pool(1)
+    harm_seed = jailbreak_seeds(ctx)
     safe = ctx.pool(0)
     if not harm_seed or not safe:
         return []
@@ -201,22 +226,73 @@ def build_benign_twin(ctx: PairContext, n: int) -> list[dict]:
 
     take = min(n, len(harm_idx))
     chosen = ctx.rng.choice(harm_idx, size=take, replace=False)
-    cross = vectors[chosen] @ vectors[safe_idx].T      # [take, n_safe]
-    within = vectors[chosen] @ vectors[harm_idx].T     # [take, n_harm]
+    safe_vectors = vectors[safe_idx]
+    harm_vectors = vectors[harm_idx]
 
+    # Блоками: на WildGuardMix плотная матрица [take × n_safe] занимала бы
+    # полгигабайта. Из сходств нужны только argmax по safe и два лучших harm
+    # (второй — на случай, если первый это сам якорь). float64 оставлен
+    # намеренно: во float32 почти-равные косинусы меняют порядок соседей.
+    block = int(ctx.cfg.get("mining_block_size", 512))
     out = []
-    for row, anchor_pos in enumerate(chosen):
-        anchor = records[anchor_pos]
-        negative = records[safe_idx[int(np.argmax(cross[row]))]]
-        order = np.argsort(within[row])[::-1]
-        positive = next(
-            (records[harm_idx[j]] for j in order if harm_idx[j] != anchor_pos), None
-        )
+    for start in range(0, take, block):
+        rows = chosen[start : start + block]
+        queries = vectors[rows]
+        nearest_safe = np.argmax(queries @ safe_vectors.T, axis=1)
+        within = queries @ harm_vectors.T
+        k = min(2, within.shape[1])
+        top = np.argpartition(-within, k - 1, axis=1)[:, :k]
+        top_scores = np.take_along_axis(within, top, axis=1)
+        top = np.take_along_axis(top, np.argsort(-top_scores, axis=1), axis=1)
+
+        for row, anchor_pos in enumerate(rows):
+            anchor = records[anchor_pos]
+            negative = records[safe_idx[int(nearest_safe[row])]]
+            positive = next((records[harm_idx[j]] for j in top[row] if harm_idx[j] != anchor_pos), None)
+            if positive is None:
+                continue
+            out.append(make_pair("benign_twin", ctx.split, anchor, positive["text"], negative,
+                                 anchor_label=1, variant="cosine_mined",
+                                 positive_source="record", positive_record=positive))
+    return out
+
+
+def build_adversarial_contrast(ctx: PairContext, n: int) -> list[dict]:
+    """Настоящие jailbreak-переформулировки вместо шаблонных (WildGuardMix).
+
+    В WildGuardMix есть adversarial-промты обоих классов. Это даёт то, что для
+    AEGIS приходилось имитировать шаблонами в jailbreak_variant, но на реальных
+    данных, и сразу в обе стороны:
+
+      harm-якорь: adversarial harmful  -> positive: vanilla harmful (той же категории)
+                                       -> negative: adversarial unharmful
+      safe-якорь: adversarial unharmful -> positive: vanilla unharmful
+                                       -> negative: adversarial harmful
+
+    Негатив всегда из той же adversarial-«формы», позитив — из vanilla того же
+    класса. Единственный общий сигнал у якоря и позитива — содержание, у якоря
+    и негатива — форма; лосс тянет к содержанию и отталкивает от формы.
+    Для датасетов без флага adversarial (AEGIS) тип пустой.
+    """
+    adv = {lab: [r for r in ctx.pool(lab, include_harmbench=False) if r.get("adversarial")] for lab in (0, 1)}
+    van = {lab: [r for r in ctx.pool(lab, include_harmbench=False) if not r.get("adversarial")] for lab in (0, 1)}
+    if not all(adv.values()) or not all(van.values()):
+        logger.warning("%s: adversarial_contrast пропущен — нет adversarial и vanilla промтов обоих классов",
+                       ctx.split)
+        return []
+
+    safe_fraction = float(ctx.cfg.get("safe_anchor_fraction", 0.5))
+    out = []
+    for _ in range(n):
+        anchor_label = 0 if ctx.rng.random() < safe_fraction else 1
+        anchor = _pick(ctx.rng, adv[anchor_label])
+        positive = _positive_from_same_class(ctx.rng, anchor, van[anchor_label])
         if positive is None:
             continue
-        out.append(make_pair("benign_twin", ctx.split, anchor, positive["text"], negative,
-                             anchor_label=1, variant="cosine_mined",
-                             positive_source="record", positive_record=positive))
+        out.append(make_pair("adversarial_contrast", ctx.split, anchor, positive["text"],
+                             _pick(ctx.rng, adv[1 - anchor_label]), anchor_label,
+                             variant="adversarial", positive_source="record",
+                             positive_record=positive))
     return out
 
 
@@ -225,6 +301,7 @@ BUILDERS: dict[str, Callable[[PairContext, int], list[dict]]] = {
     "paraphrase": build_paraphrase,
     "jailbreak_variant": build_jailbreak_variant,
     "benign_twin": build_benign_twin,
+    "adversarial_contrast": build_adversarial_contrast,
 }
 
 

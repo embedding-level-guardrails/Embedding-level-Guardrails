@@ -11,7 +11,7 @@ from pathlib import Path
 
 from ..utils import get_logger, read_jsonl
 from .builders import BUILDERS, PairContext, deduplicate, flatten_texts, make_pair
-from .sources import load_aegis_records, load_harmbench
+from .sources import load_aegis_records, load_harmbench, load_processed_records
 from .transforms import JAILBREAKS, PARAPHRASES, load_external_variants
 
 logger = get_logger(__name__)
@@ -82,5 +82,6 @@ __all__ = [
     "BUILDERS", "JAILBREAKS", "PARAPHRASES", "PairContext", "build_split", "dedupe_pool",
     "deduplicate", "exclude_texts", "split_texts",
     "flatten_texts", "load_aegis_records", "load_external_variants", "load_harmbench",
+    "load_processed_records",
     "load_pairs", "make_pair", "pairs_dir", "pairs_path",
 ]

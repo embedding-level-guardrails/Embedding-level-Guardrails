@@ -98,8 +98,11 @@ def main() -> None:
     with_head = train_cfg.objective in ("classification", "joint")
     model, device = build_model(spec, device=args.device or cfg.training.get("device", "auto"),
                                 with_head=with_head)
+    if train_cfg.gradient_checkpointing:
+        model.backbone.gradient_checkpointing_enable()
     teacher = frozen_teacher(spec, device) if train_cfg.kl_weight > 0 else None
-    logger.info("Устройство: %s, голова: %s, KL-якорь: %s", device, with_head, teacher is not None)
+    logger.info("Устройство: %s, голова: %s, KL-якорь: %s, gradient checkpointing: %s",
+                device, with_head, teacher is not None, train_cfg.gradient_checkpointing)
 
     mlflow_cfg = dict(cfg.mlflow)
     if args.no_mlflow:

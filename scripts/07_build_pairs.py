@@ -1,4 +1,4 @@
-"""Шаг 7 (RQ2): сборка обучающих пар из AEGIS + HarmBench.
+"""Шаг 7 (RQ2): сборка обучающих пар из основного датасета (AEGIS / WildGuardMix) + HarmBench.
 
     python scripts/07_build_pairs.py --config configs/rq2_pairs.yaml
     python scripts/07_build_pairs.py --types safe_harm_contrast jailbreak_variant
@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import zlib
 from collections import Counter
 from pathlib import Path
 
@@ -33,9 +34,9 @@ from eguard.pairs import (  # noqa: E402
     dedupe_pool,
     exclude_texts,
     flatten_texts,
-    load_aegis_records,
     load_external_variants,
     load_harmbench,
+    load_processed_records,
     pairs_dir,
     pairs_path,
     split_texts,
@@ -99,7 +100,7 @@ def main() -> None:
     # повторы внутри сплита, затем вычитаем тексты более приоритетных сплитов.
     # Приоритет test > val > train — оценочный сплит не жертвуем ничем.
     raw_records = {
-        split: load_aegis_records(cfg.paths.processed, cfg.dataset.name, split)
+        split: load_processed_records(cfg.paths.processed, cfg.dataset.name, split)
         for split in args.splits
     }
     priority = [s for s in ("test", "val", "train") if s in raw_records]
@@ -126,6 +127,14 @@ def main() -> None:
                 include_context=bool(hb_cfg.get("include_context", False)),
                 drop_categories=tuple(hb_cfg.get("drop_categories") or ()),
             )
+            # Behavior HarmBench может дословно совпасть с промтом из val/test
+            # основного датасета (WildGuardMix собирали в том числе из публичных
+            # red-teaming наборов). Такой текст в train — утечка в оценку.
+            eval_texts = set().union(*(split_texts(pools[s]) for s in pools if s != "train"))
+            before = len(harmbench)
+            harmbench = exclude_texts(harmbench, eval_texts)
+            if len(harmbench) < before:
+                logger.info("HarmBench: убрано %d behaviors, совпадающих с val/test", before - len(harmbench))
 
         sizes = dict((pairs_cfg.get("sizes") or {}).get(split, {}))
         if args.types:
@@ -140,7 +149,9 @@ def main() -> None:
             split=split,
             aegis=aegis,
             harmbench=harmbench,
-            rng=np.random.default_rng(cfg.seed + hash(split) % 10_000),
+            # zlib.crc32, а не hash(): hash() строк рандомизируется в каждом процессе
+            # Python, и с ним пары не воспроизводились от запуска к запуску.
+            rng=np.random.default_rng(cfg.seed + zlib.crc32(split.encode()) % 10_000),
             cfg=pairs_cfg,
             external_variants=external,
             mining=load_mining(cfg, mining_encoder, split, split_texts(aegis)),

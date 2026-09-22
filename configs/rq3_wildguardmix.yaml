@@ -1,0 +1,56 @@
+# RQ3 на WildGuardMix: те же три objective, что и для AEGIS, на парах из
+# configs/rq2_pairs_wildguardmix.yaml. Валидация — val WildGuardMix, hold-out —
+# wildguardtest, OOD — ToxicChat (09_eval_lodo.py --ood-config configs/ood_toxicchat.yaml).
+# Отдельные output_dir и эксперимент MLflow, чтобы прогоны не смешались с AEGIS.
+seed: 42
+paths:
+  processed: data/processed
+  embeddings: artifacts/embeddings
+  # Отдельно от AEGIS: иначе 09_eval_lodo.py перезапишет results/rq3/LODO.md.
+  results: results/wildguardmix
+  figures: results/wildguardmix/figures
+dataset:
+  name: wildguardmix
+  hf_id: allenai/wildguardmix
+  adversarial_filter: all
+  min_chars: 3
+  max_chars: 8000
+  val_fraction: 0.1
+  max_records_per_split: null
+encoders:
+- key: e5-small-v2
+  hf_id: intfloat/e5-small-v2
+  pooling: mean
+  max_length: 512
+  prefix: 'query: '
+pairs:
+  name: wildguardmix_harmbench_v1
+  types: []
+training:
+  objective: contrastive
+  loss: info_nce
+  temperature: 0.05
+  margin: 0.2
+  epochs: 2
+  batch_size: 32
+  eval_batch_size: 64
+  lr: 2.0e-05
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  max_grad_norm: 1.0
+  grad_accum_steps: 1
+  ce_weight: 1.0
+  contrastive_weight: 1.0
+  kl_weight: 0.0
+  kl_temperature: 0.1
+  eval_every: 200
+  log_every: 20
+  target_fpr: 0.01
+  # Промты WildGuardMix в ~6 раз длиннее AEGIS: без этого обучение не влезает в память MPS.
+  gradient_checkpointing: true
+  device: auto
+  output_dir: artifacts/runs_wildguardmix
+mlflow:
+  enabled: true
+  tracking_uri: sqlite:///mlflow.db
+  experiment: eguard-rq3-wildguardmix

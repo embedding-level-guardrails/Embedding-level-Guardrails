@@ -1,0 +1,86 @@
+# RQ2 на WildGuardMix: подготовка данных, эмбеддинги для майнинга и сборка пар.
+# Один конфиг на все три шага:
+#   python scripts/00_prepare_data.py --config configs/rq2_pairs_wildguardmix.yaml
+#   python scripts/01_embed.py        --config configs/rq2_pairs_wildguardmix.yaml
+#   python scripts/07_build_pairs.py  --config configs/rq2_pairs_wildguardmix.yaml
+# Датасет gated: нужен принятый запрос доступа и HF_TOKEN (или huggingface-cli login).
+seed: 42
+
+paths:
+  processed: data/processed
+  embeddings: artifacts/embeddings
+  # Отдельно от AEGIS: иначе 07_build_pairs.py перезапишет results/rq2/PAIRS.md.
+  results: results/wildguardmix
+  figures: results/wildguardmix/figures
+
+dataset:
+  name: wildguardmix
+  hf_id: allenai/wildguardmix
+  # vanilla | adversarial | all. all: adversarial-промты — главное, ради чего
+  # WildGuardMix и берём (реальные jailbreak-формулировки обоих классов).
+  adversarial_filter: all
+  min_chars: 3
+  max_chars: 8000
+  # val отрезается от wildguardtrain; официальный wildguardtest остаётся test.
+  val_fraction: 0.1
+  # null = все уникальные промты. Если обучение слишком долгое — ограничить здесь.
+  max_records_per_split: null
+
+# Нужен только для 01_embed: эмбеддинги e5 используются при майнинге benign_twin.
+encoders:
+  - key: e5-small-v2
+    hf_id: intfloat/e5-small-v2
+    pooling: mean
+    max_length: 512
+    prefix: "query: "
+
+embed:
+  batch_size: 64
+  device: auto
+  layer: -1
+
+pairs:
+  name: wildguardmix_harmbench_v1
+
+  harmbench:
+    # Как и для AEGIS, HarmBench подмешивается в train: его behaviors — затравки
+    # jailbreak-обёрток. Совпадающие с val/test WildGuardMix тексты вычищаются.
+    train_split: all
+    heldout_split: null
+    cache_dir: data/raw/harmbench
+    include_context: false
+    drop_categories: []
+
+  safe_anchor_fraction: 0.5
+  paraphrase_min_chars: 25
+  paraphrase_variants: null
+  jailbreak_variants: null
+  jailbreak_negative: mix
+  # Затравки шаблонных jailbreak-обёрток: HarmBench + vanilla-вредоносные промты
+  # WildGuardMix. Adversarial-промты повторно не оборачиваются — для них есть
+  # отдельный тип adversarial_contrast на реальных переформулировках.
+  jailbreak_seeds: both
+  external_variants: null
+
+  mining:
+    encoder: e5-small-v2
+
+  sizes:
+    train:
+      safe_harm_contrast: 12000
+      paraphrase: 5000
+      jailbreak_variant: 5000
+      adversarial_contrast: 8000
+      benign_twin: 3000
+    val:
+      safe_harm_contrast: 1200
+      paraphrase: 500
+      jailbreak_variant: 500
+      adversarial_contrast: 800
+      benign_twin: 300
+    test:
+      safe_harm_contrast: 1200
+      paraphrase: 500
+      jailbreak_variant: 500
+      adversarial_contrast: 800
+      benign_twin: 300

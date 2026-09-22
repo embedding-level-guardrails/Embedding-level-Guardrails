@@ -49,6 +49,13 @@ def summarize(name: str, records: list[dict]) -> dict:
         "median_chars": int(np.median(lens)),
         "p95_chars": int(np.percentile(lens, 95)),
         "top_harm_categories": dict(cats.most_common(10)),
+        # WildGuardMix: доля jailbreak-переформулировок, отдельно по классам
+        **({"adversarial_rate": {
+            name: round(sum(r["adversarial"] for r in part) / max(len(part), 1), 3)
+            for name, part in (("all", records),
+                               ("safe", [r for r in records if r["label"] == 0]),
+                               ("harm", [r for r in records if r["label"] == 1]))
+        }} if records and "adversarial" in records[0] else {}),
     }
 
 

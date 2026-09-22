@@ -55,6 +55,10 @@ class TrainConfig:
     log_every: int = 20
     target_fpr: float = 0.01
     pair_types: list[str] = field(default_factory=list)
+    # Пересчёт активаций при backward вместо хранения: на длинных промтах
+    # (WildGuardMix) без него батч из 96 текстов по 512 токенов не влезает в память
+    # MPS. Математика обучения не меняется, цена — примерно +30% времени.
+    gradient_checkpointing: bool = False
     seed: int = 42
 
 

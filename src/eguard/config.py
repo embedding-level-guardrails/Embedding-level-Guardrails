@@ -33,6 +33,11 @@ class DatasetSpec:
     config: str | None = None            # HF config (у ToxicChat это toxicchat0124)
     label_field: str = "toxicity"        # toxicity | jailbreaking | any
     require_human_annotation: bool = True
+    # WildGuardMix: vanilla | adversarial | all — какие промты брать.
+    adversarial_filter: str = "all"
+    # Потолок записей на сплит после нормализации (стратифицированно по метке);
+    # null = без ограничения. Нужен для больших наборов вроде WildGuardMix.
+    max_records_per_split: int | None = None
 
 
 @dataclass
