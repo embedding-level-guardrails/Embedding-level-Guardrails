@@ -1,69 +1,77 @@
-from typing import Literal, Any
-
 import torch
 from torch import nn
 from transformers import AutoModel
 
-
 class ProjectionHead(nn.Module):
-    """
-    Performs projection of input token representations through a multi-layer perceptron (MLP)
-    after applying a mean pooling operation.
-    """
 
     def __init__(self, input_dim: int, hidden_dim: int, output_dim: int) -> None:
         super().__init__()
-        self.head = nn.Sequential(
+        self.mlp = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, output_dim),
         )
 
-    def forward(self, batch: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
-        mask = attention_mask.unsqueeze(-1).to(batch.dtype)
-        pooled = (mask * batch).sum(dim=1) / mask.sum(dim=1).clamp_min(1)
-        return self.head(pooled)
+    def forward(self, batch: torch.Tensor) -> torch.Tensor:
+        return self.mlp(batch)
 
 
 class Embedder(nn.Module):
 
     def __init__(
             self,
-            transformation_head: Literal["projection"] = "projection",
-            *,
-            hidden_dim: int | None = None,
-            output_dim: int | None = None,
+            hidden_dim: int | None,
+            output_dim: int | None,
             model_name: str = "jhu-clsp/ettin-encoder-68m",
-    ) -> None:
+    ):
         super().__init__()
         self.encoder = AutoModel.from_pretrained(model_name)
-        embedding_dim = self.encoder.config.hidden_size
-        if transformation_head == "projection":
-            hidden_dim = embedding_dim * 2 if hidden_dim is None else hidden_dim
-            output_dim = embedding_dim if output_dim is None else output_dim
-            self.transformation_head = ProjectionHead(
-                input_dim=embedding_dim,
-                hidden_dim=hidden_dim,
-                output_dim=output_dim,
+        self.projection_head = None
+        if hidden_dim is not None and output_dim is not None:
+            self.projection_head = ProjectionHead(
+                self.encoder.config.hidden_size,
+                hidden_dim,
+                output_dim
             )
+            self.embedding_dim = output_dim
         else:
-            raise ValueError(
-                f"Unknown transformation head {transformation_head!r}. "
-                "Supported heads: 'projection'."
-            )
-
-    @classmethod
-    def load_embedder(cls, checkpoint: dict[str, Any]):
-        cfg = checkpoint["config"]
-        model_config = dict(cfg["model"])
-        # Preserve loading of checkpoints saved before the dimension parameters were split.
-        if "head_hidden_dim" in model_config:
-            model_config.setdefault("hidden_dim", model_config.pop("head_hidden_dim") or None)
-        embedder = cls(**model_config)
-        embedder.load_state_dict(checkpoint["model"], strict=True)
-        return embedder
+            self.embedding_dim = self.encoder.config.hidden_size
 
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor):
         output = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
-        embeddings = self.transformation_head(output.last_hidden_state, attention_mask)
-        return embeddings
+        output = self._mean_pooling(output.last_hidden_state, attention_mask)
+        if self.projection_head is not None:
+            output = self.projection_head(output)
+        return output
+
+
+    def _mean_pooling(self, batch: torch.Tensor, attention_mask: torch.Tensor):
+        mask = attention_mask.unsqueeze(-1).to(batch.dtype)
+        return (mask * batch).sum(dim=1) / mask.sum(dim=1).clamp_min(1)
+
+
+class Classifier(nn.Module):
+
+    def __init__(
+            self,
+            head_hidden_dim: int,
+            projection_hidden_dim: int | None,
+            projection_output_dim: int | None,
+            model_name: str = "jhu-clsp/ettin-encoder-68m"
+    ):
+        super().__init__()
+        self.embedder = Embedder(
+            hidden_dim=projection_hidden_dim,
+            output_dim=projection_output_dim,
+            model_name=model_name
+        )
+        self.mlp = nn.Sequential(
+            nn.Linear(self.embedder.embedding_dim, head_hidden_dim),
+            nn.ReLU(),
+            nn.Linear(head_hidden_dim, 2),
+        )
+
+
+    def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor):
+        embedding = self.embedder(input_ids, attention_mask)
+        return self.mlp(embedding), embedding

@@ -17,6 +17,7 @@ dependencies = [
     "polars~=1.44",
     "torch~=2.14",
     "transformers~=5.17",
+    "pytorch-metric-learning~=2.9",
 ]
 
 [project.scripts]

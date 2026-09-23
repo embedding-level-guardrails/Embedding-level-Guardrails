@@ -1,0 +1,50 @@
+seed: 42
+
+models:
+  backbone: jhu-clsp/ettin-encoder-68m
+  classifier:
+    head_hidden_dim: 1024
+  embedder:
+    projection_hidden_dim: 1024
+    projection_output_dim: 128
+
+supcon_loss:
+  temperature: 0.1
+
+optimizer:
+  lr: 0.00005
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
+  eps: 1.0e-8
+
+data:
+  hf_dataset_path: hf://datasets/allenai/wildguardmix/train/wildguard_train.parquet
+  hf_token: ${env:HF_TOKEN}
+
+training:
+  models: all
+  sampler:
+    number_of_samples_per_category: 32
+    batch_size: 256
+    number_of_samples_per_epoch: 100_000
+  loader:
+    num_workers: 0
+    pin_memory: true
+    persistent_workers: true
+  validation:
+    fraction: 0.1
+  epochs: 5
+  device: auto
+  precision: auto # auto, fp32, fp16, or bf16
+  max_grad_norm: 1.0
+  gradient_checkpointing: true
+  log_every_steps: 50
+  save_every_epochs: 1
+  val_samples_per_cat: 10 # number of samples in one category in validation
+  output_dir: ${hydra:runtime.output_dir}
+
+hydra:
+  job:
+    chdir: false
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
