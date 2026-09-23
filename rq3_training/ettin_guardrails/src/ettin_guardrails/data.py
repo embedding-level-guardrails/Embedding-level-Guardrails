@@ -3,83 +3,62 @@ from collections.abc import Hashable, Iterable, Iterator
 
 import polars as pl
 import torch
-from omegaconf import DictConfig
 from torch.utils.data import Dataset, Sampler
 from transformers import AutoTokenizer
 
-LABEL_MAPPING_DICT = {"unsafe": "harmful", "safe": "safe", "harm": "harmful"}
 
-JBB_CATEGORY_MAPPING_DICT = {
-    "chemical_biological": "Controlled/Regulated Substances",
-    "cybercrime_intrusion": "Malware",
-    "harmful": "Threat",
-    "copyright": "Copyright/Trademark/Plagiarism",
-    "misinformation_disinformation": "Fraud/Deception",
-    "harassment_bullying": "Harassment",
-    "illegal": "Criminal Planning/Confessions"
-}
-
-
-def load_data(parameters: DictConfig) -> pl.DataFrame:
-    prompt_type_col = "prompt_type"
-    label_type_col = "label_type"
-    only_matching_rows_expr = (
-            (pl.col(label_type_col) == "anchor_label") & (pl.col(prompt_type_col) == "anchor_text") |
-            (pl.col(label_type_col) == "pair_label") & (pl.col(prompt_type_col) == "pair_text")
-    )
-    keep_only_first_cat = (
-        pl.col("category")
-        .str.split(",")
-        .list.first()
-    )
-    dataset = (
-        pl.read_ndjson(parameters.data.path)
-        .unpivot(
-            on=["anchor_text", "pair_text"],
-            index=["category", "pair_type", "anchor_label", "pair_label"],
-            variable_name=prompt_type_col,
-            value_name="prompt",
-        ).unpivot(
-            on=["anchor_label", "pair_label"],
-            index=["category", "pair_type", prompt_type_col, "prompt"],
-            variable_name=label_type_col,
-            value_name="label",
-        ).filter(only_matching_rows_expr)
-        .drop(label_type_col, prompt_type_col, "pair_type")
-        .with_columns(keep_only_first_cat.alias("category"))
-        .with_columns(
-            pl.col("label").replace_strict(LABEL_MAPPING_DICT).alias("label"),
+def load_data(
+        dataset_path: str,
+        hf_token: str,
+        prompt_col: str = "prompt",
+        stratum_col: str = "subcategory",
+        label_col: str = "prompt_harm_label",
+) -> pl.DataFrame:
+    return (
+        pl.read_parquet(dataset_path, storage_options={"token": hf_token})
+        .group_by(prompt_col, maintain_order=True)
+        .agg(
+            pl.col(label_col).unique(),
+            pl.col(stratum_col).unique()
         )
-        .with_columns(
-            pl.when(pl.col("label") == "safe")
-            .then(pl.lit(""))
-            .otherwise(pl.col("category"))
-            .alias("category")
-        )
-        .with_columns(
-            pl.col("category").replace(JBB_CATEGORY_MAPPING_DICT)
-        )
-        .filter(pl.col("prompt") != "REDACTED")
-        .select("prompt", "category")
+        .filter((pl.col(stratum_col).list.len() == 1) & (pl.col(label_col).list.len() == 1))
+        .filter(pl.col(prompt_col).str.len_bytes() > 0)
+        .explode([stratum_col, label_col], empty_as_null=True, keep_nulls=False)
+        .select(
+            pl.col(prompt_col).alias("prompt"),
+            pl.col(stratum_col).alias("category"),
+            pl.col(label_col).alias("label")
+        ).with_row_index(name="id")
     )
-    return dataset
 
 def split_validation_data(
-        data: pl.DataFrame, samples_per_category: int, seed: int,
+        data: pl.DataFrame,
+        fraction: float,
+        seed: int,
+        index_col: str = "id",
+        stratum_col: str = "category",
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
-    if samples_per_category < 2:
-        raise ValueError("validation.samples_per_category must be at least 2")
+    if fraction <= 0 or fraction >= 1.0:
+        raise ValueError("Fraction mast be between 0 and 1")
+    val_size = int(data.height * fraction)
+    samples_per_cat = (
+        data.group_by(stratum_col)
+        .agg(((pl.len() / data.height) * val_size).floor().cast(dtype=int).alias("val"))
+        .filter(pl.col("val") > 1)
+    )
+    samples_per_cat = dict(zip(samples_per_cat[stratum_col], samples_per_cat["val"]))
     generator = random.Random(seed)
     val_idx = []
-    for group in data.partition_by("category", maintain_order=True):
-        if len(group) < samples_per_category:
-            continue # skip small categories
-        indices = generator.sample(range(len(group)), min(samples_per_category, len(group) - 1))
-        val_idx.append(group[indices])
+    for category in data.partition_by(stratum_col, maintain_order=True):
+        name = category[stratum_col][0]
+        if name not in samples_per_cat:
+            continue # skip categories with one sample
+        indices = generator.sample(range(category.height), samples_per_cat[name])
+        val_idx.append(category[indices].select(index_col))
     if len(val_idx) < 2:
-        raise ValueError(f"Validation requires at least two categories with more than {samples_per_category} samples")
-    val_data = pl.concat(val_idx)
-    train_data = data.join(val_data, on="prompt", how="anti")
+        raise ValueError(f"Validation requires at least two categories with more than 2 samples")
+    val_data = data.join(pl.concat(val_idx), on=index_col)
+    train_data = data.join(val_data, on=index_col, how="anti")
     return train_data, val_data
 
 

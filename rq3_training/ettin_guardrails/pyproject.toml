@@ -1,8 +1,6 @@
 [project]
 name = "ettin_guardrails"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
 authors = [
     { name = "Daria Kaigorodtseva", email = "daria.kay000@gmail.com" }
 ]
