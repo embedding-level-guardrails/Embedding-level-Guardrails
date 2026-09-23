@@ -16,8 +16,10 @@ dependencies = [
     "omegaconf>=2.3.1",
     "polars~=1.44",
     "torch~=2.14",
+    "tqdm>=4.66,<5",
     "transformers~=5.17",
     "pytorch-metric-learning~=2.9",
+    "wandb>=0.22.3,<0.23",
 ]
 
 [project.scripts]

@@ -1,20 +1,20 @@
 import random
 
 import polars as pl
+from huggingface_hub import get_token
 from torch.utils.data import Dataset
 from transformers import PreTrainedTokenizerBase, BatchEncoding
 
 
 def load_data(
         hf_dataset_path: str,
-        hf_token: str,
         prompt_col: str = "prompt",
         stratum_col: str = "subcategory",
         label_col: str = "prompt_harm_label",
         harmful_label: str = "harmful"
 ) -> pl.DataFrame:
     return (
-        pl.read_parquet(hf_dataset_path, storage_options={"token": hf_token})
+        pl.read_parquet(hf_dataset_path, storage_options={"token": get_token()})
         .group_by(prompt_col, maintain_order=True)
         .agg(
             pl.col(label_col).unique(),
@@ -100,7 +100,7 @@ class TokenizedDataset(Dataset[dict[str, int]]):
             return_token_type_ids=False
         )
         tokenizer_output["category_ids"] = self._category_to_index[category]
-        tokenizer_output["labels"] = self._data[self._label_col]
+        tokenizer_output["labels"] = self._data[self._label_col][index]
         return tokenizer_output
 
     def __getitems__(self, indices: list[int]):
@@ -114,5 +114,5 @@ class TokenizedDataset(Dataset[dict[str, int]]):
             return_token_type_ids=False
         )
         tokenizer_output["category_ids"] = categories.to_list()
-        tokenizer_output["labels"] = self._data[self._label_col].to_list()
+        tokenizer_output["labels"] = self._data[self._label_col][indices].to_list()
         return tokenizer_output

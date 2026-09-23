@@ -20,20 +20,20 @@ class Embedder(nn.Module):
 
     def __init__(
             self,
-            hidden_dim: int | None,
-            output_dim: int | None,
+            projection_hidden_dim: int | None = None,
+            projection_output_dim: int | None = None,
             model_name: str = "jhu-clsp/ettin-encoder-68m",
     ):
         super().__init__()
         self.encoder = AutoModel.from_pretrained(model_name)
         self.projection_head = None
-        if hidden_dim is not None and output_dim is not None:
+        if projection_hidden_dim is not None and projection_output_dim is not None:
             self.projection_head = ProjectionHead(
                 self.encoder.config.hidden_size,
-                hidden_dim,
-                output_dim
+                projection_hidden_dim,
+                projection_output_dim
             )
-            self.embedding_dim = output_dim
+            self.embedding_dim = projection_output_dim
         else:
             self.embedding_dim = self.encoder.config.hidden_size
 
@@ -55,14 +55,14 @@ class Classifier(nn.Module):
     def __init__(
             self,
             head_hidden_dim: int,
-            projection_hidden_dim: int | None,
-            projection_output_dim: int | None,
+            projection_hidden_dim: int | None = None,
+            projection_output_dim: int | None = None,
             model_name: str = "jhu-clsp/ettin-encoder-68m"
     ):
         super().__init__()
         self.embedder = Embedder(
-            hidden_dim=projection_hidden_dim,
-            output_dim=projection_output_dim,
+            projection_hidden_dim=projection_hidden_dim,
+            projection_output_dim=projection_output_dim,
             model_name=model_name
         )
         self.mlp = nn.Sequential(

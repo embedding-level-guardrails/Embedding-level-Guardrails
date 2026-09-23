@@ -6,12 +6,15 @@ from typing import Callable
 import hydra
 import polars as pl
 import torch
+import wandb
 from omegaconf import DictConfig, OmegaConf
 from pytorch_metric_learning.losses import SupConLoss
 from pytorch_metric_learning.samplers import MPerClassSampler
-from torch.nn.functional import binary_cross_entropy_with_logits, cross_entropy
+from torch.nn.functional import cross_entropy
 from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
 from transformers import AutoTokenizer, DataCollatorWithPadding, PreTrainedTokenizerBase, set_seed
+from transformers.utils import logging as transformers_logging
 
 from ettin_guardrails.checkpoint import save_checkpoint
 from ettin_guardrails.data import TokenizedDataset, load_data, split_validation_data
@@ -158,8 +161,7 @@ def train_classifier_epoch(context: TrainingContext, state: ModelTrainingState) 
     val_loss = 0.0
     val_samples = 0
     state.model.train()
-    for batch in context.train_loader:
-        state.optimizer.zero_grad()
+    for batch in tqdm(context.train_loader, desc="Training classifier", unit="batch", leave=False):
         input_ids = batch["input_ids"].to(context.device)
         attn_mask = batch["attention_mask"].to(context.device)
         labels = batch["labels"].to(context.device)
@@ -170,16 +172,17 @@ def train_classifier_epoch(context: TrainingContext, state: ModelTrainingState) 
         train_samples += input_ids.shape[0]
         _backward_step(loss, context, state)
         state.global_step += 1
+        state.optimizer.zero_grad()
 
     state.model.eval()
     with torch.inference_mode():
-        for batch in context.val_loader:
+        for batch in tqdm(context.val_loader, desc="Validating classifier", unit="batch", leave=False):
             input_ids = batch["input_ids"].to(context.device)
             attn_mask = batch["attention_mask"].to(context.device)
             labels = batch["labels"].to(context.device)
             with torch.autocast(context.device.type, dtype=context.amp_dtype, enabled=context.amp_enabled):
                 logits, _ = state.model(input_ids, attn_mask)
-            loss = binary_cross_entropy_with_logits(logits.float(), labels)
+            loss = cross_entropy(logits.float(), labels.long())
             val_loss += loss.cpu().item() * input_ids.shape[0]
             val_samples += input_ids.shape[0]
 
@@ -194,8 +197,7 @@ def train_embedder_epoch(context: TrainingContext, state: ModelTrainingState) ->
     val_samples = 0
 
     state.model.train()
-    for batch in context.train_loader:
-        state.optimizer.zero_grad()
+    for batch in tqdm(context.train_loader, desc="Training embedder", unit="batch", leave=False):
         input_ids = batch["input_ids"].to(context.device)
         attn_mask = batch["attention_mask"].to(context.device)
         cat_ids = batch["category_ids"].to(context.device)
@@ -206,10 +208,11 @@ def train_embedder_epoch(context: TrainingContext, state: ModelTrainingState) ->
         train_samples += input_ids.shape[0]
         state.global_step += 1
         _backward_step(loss, context, state)
+        state.optimizer.zero_grad()
 
     state.model.eval()
     with torch.inference_mode():
-        for batch in context.val_loader:
+        for batch in tqdm(context.val_loader, desc="Validating embedder", unit="batch", leave=False):
             state.optimizer.zero_grad()
             input_ids = batch["input_ids"].to(context.device)
             attn_mask = batch["attention_mask"].to(context.device)
@@ -230,8 +233,7 @@ def train_joint_epoch(context: TrainingContext, state: ModelTrainingState) -> Ep
     val_samples = 0
 
     state.model.train()
-    for batch in context.train_loader:
-        state.optimizer.zero_grad()
+    for batch in tqdm(context.train_loader, desc="Training joint model", unit="batch", leave=False):
         input_ids = batch["input_ids"].to(context.device)
         attn_mask = batch["attention_mask"].to(context.device)
         cat_ids = batch["category_ids"].to(context.device)
@@ -243,10 +245,11 @@ def train_joint_epoch(context: TrainingContext, state: ModelTrainingState) -> Ep
         train_samples += input_ids.shape[0]
         state.global_step += 1
         _backward_step(loss, context, state)
+        state.optimizer.zero_grad()
 
     state.model.eval()
     with torch.inference_mode():
-        for batch in context.val_loader:
+        for batch in tqdm(context.val_loader, desc="Validating joint model", unit="batch", leave=False):
             state.optimizer.zero_grad()
             input_ids = batch["input_ids"].to(context.device)
             attn_mask = batch["attention_mask"].to(context.device)
@@ -254,11 +257,31 @@ def train_joint_epoch(context: TrainingContext, state: ModelTrainingState) -> Ep
             labels = batch["labels"].to(context.device)
             with torch.autocast(context.device.type, dtype=context.amp_dtype, enabled=context.amp_enabled):
                 logits, embeddings = state.model(input_ids, attn_mask)
-            loss = context.supcon_fn(embeddings.float(), cat_ids) + binary_cross_entropy_with_logits(logits.float(), labels)
+            loss = context.supcon_fn(embeddings.float(), cat_ids) + cross_entropy(logits.float(), labels.long())
             val_loss += loss.cpu().item() * input_ids.shape[0]
             val_samples += input_ids.shape[0]
 
     return EpochMetrics(train_loss / train_samples, val_loss / val_samples)
+
+
+def _wandb_run_name(model_name: str, cfg: DictConfig) -> str:
+    parts = [model_name]
+    if model_name != "ettin-cl":
+        parts.extend(f"{key}={value}" for key, value in cfg.models.classifier.items())
+    if model_name != "ettin-ce":
+        parts.extend(f"{key}={value}" for key, value in cfg.models.embedder.items())
+    parts.append(f"lr={cfg.optimizer.lr:g}")
+    return "-".join(parts)
+
+
+def _wandb_config(model_name: str, cfg: DictConfig) -> dict:
+    # Only send experiment settings; data contains authentication credentials.
+    config = OmegaConf.to_container(
+        OmegaConf.masked_copy(cfg, ["seed", "models", "optimizer", "supcon_loss", "tokenizer", "training"]),
+        resolve=True,
+    )
+    config["model_name"] = model_name
+    return config
 
 
 def _train_model(
@@ -269,26 +292,34 @@ def _train_model(
     cfg = context.cfg
     state = _initialize_model(model_name, context)
     output_dir = Path(cfg.training.output_dir) / model_name
-    for epoch in range(cfg.training.epochs):
-        metrics = epoch_loop(context, state)
-        logger.info(
-            "model=%s epoch=%d train_loss=%.6f val_loss=%.6f",
-            model_name, epoch + 1, metrics.train_loss, metrics.val_loss,
-        )
-        if (epoch + 1) % cfg.training.save_every_epochs == 0 or (epoch + 1) == cfg.training.epochs:
-            save_checkpoint(
-                {
-                    "model": state.model.state_dict(),
-                    "optimizer": state.optimizer.state_dict(),
-                    "scaler": state.scaler.state_dict(),
-                    "model_name": model_name,
-                    "epoch": epoch + 1,
-                    "global_step": state.global_step,
-                    "validation_loss": metrics.val_loss,
-                    "config": OmegaConf.to_container(cfg, resolve=True),
-                },
-                output_dir,
-            )
+    with wandb.init(
+        **cfg.get("wandb", {}),
+        name=_wandb_run_name(model_name, cfg),
+        config=_wandb_config(model_name, cfg),
+        reinit="create_new",
+    ) as run:
+        for epoch in tqdm(range(cfg.training.epochs), desc=model_name, unit="epoch"):
+            metrics = epoch_loop(context, state)
+            run.log({
+                "epoch": epoch + 1,
+                "global_step": state.global_step,
+                "train/loss": metrics.train_loss,
+                "val/loss": metrics.val_loss,
+            }, step=state.global_step)
+            if (epoch + 1) % cfg.training.save_every_epochs == 0 or (epoch + 1) == cfg.training.epochs:
+                save_checkpoint(
+                    {
+                        "model": state.model.state_dict(),
+                        "optimizer": state.optimizer.state_dict(),
+                        "scaler": state.scaler.state_dict(),
+                        "model_name": model_name,
+                        "epoch": epoch + 1,
+                        "global_step": state.global_step,
+                        "validation_loss": metrics.val_loss,
+                        "config": OmegaConf.to_container(cfg, resolve=True),
+                    },
+                    output_dir,
+                )
 
 
 def train(cfg: DictConfig) -> None:
@@ -313,9 +344,12 @@ def train(cfg: DictConfig) -> None:
 @hydra.main(
     version_base="1.3",
     config_path="../../conf",
-    config_name="default",
+    config_name="default.yaml",
 )
 def main(cfg: DictConfig) -> None:
+    transformers_logging.set_verbosity_error()
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
     train(cfg)
 
 
