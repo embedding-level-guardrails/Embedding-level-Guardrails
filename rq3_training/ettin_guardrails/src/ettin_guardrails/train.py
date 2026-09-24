@@ -41,6 +41,7 @@ class ModelTrainingState:
     optimizer: torch.optim.Optimizer
     scaler: torch.amp.GradScaler
     global_step: int = 0
+    scheduler: torch.optim.lr_scheduler.LinearLR | None = None
 
 
 @dataclass
@@ -151,6 +152,16 @@ def _initialize_model(model_name: str, context: TrainingContext) -> ModelTrainin
         model=model,
         optimizer=optimizer,
         scaler=torch.amp.GradScaler(context.device.type, enabled=context.amp_dtype == torch.float16),
+        scheduler=(
+            torch.optim.lr_scheduler.LinearLR(
+                optimizer,
+                start_factor=cfg.scheduler.start_factor,
+                end_factor=cfg.scheduler.end_factor,
+                total_iters=cfg.scheduler.total_iters,
+            )
+            if cfg.get("scheduler", {}).get("enabled", False)
+            else None
+        ),
     )
 
 
@@ -278,7 +289,7 @@ def _wandb_run_name(full_model_name: str, cfg: DictConfig) -> str:
 
 def _wandb_config(model_name: str, cfg: DictConfig) -> dict:
     config = OmegaConf.to_container(
-        OmegaConf.masked_copy(cfg, ["seed", "models", "optimizer", "supcon_loss", "tokenizer", "training"]),
+        OmegaConf.masked_copy(cfg, ["seed", "models", "optimizer", "scheduler", "supcon_loss", "tokenizer", "training"]),
         resolve=True,
     )
     config["model_name"] = model_name
@@ -305,14 +316,18 @@ def _train_model(
                 "epoch": epoch + 1,
                 "global_step": state.global_step,
                 "train/loss": metrics.train_loss,
+                "train/lr": state.optimizer.param_groups[0]["lr"],
                 "val/loss": metrics.val_loss,
             }, step=state.global_step, commit=True)
+            if state.scheduler is not None:
+                state.scheduler.step()
             if (epoch + 1) % cfg.training.save_every_epochs == 0 or (epoch + 1) == cfg.training.epochs:
                 save_checkpoint(
                     {
                         "model": state.model.state_dict(),
                         "optimizer": state.optimizer.state_dict(),
                         "scaler": state.scaler.state_dict(),
+                        "scheduler": state.scheduler.state_dict() if state.scheduler is not None else None,
                         "model_name": model_name,
                         "epoch": epoch + 1,
                         "global_step": state.global_step,
