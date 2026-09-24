@@ -72,7 +72,7 @@ class TokenizedDataset(Dataset[dict[str, int]]):
                  stratum_col: str = "category",
                  label_col: str = "label",
                  ) -> None:
-        self._category_to_index: dict[str, int] = {
+        self._stratum_to_index: dict[str, int] = {
             category: i for i, category in enumerate(data[stratum_col].unique(maintain_order=True))
         }
         self._data = data
@@ -83,8 +83,8 @@ class TokenizedDataset(Dataset[dict[str, int]]):
         self._max_length = max_length
 
     @property
-    def category_ids(self):
-        return [self._category_to_index[cat] for cat in self._data[self._stratum_col]]
+    def strata_labels(self):
+        return [self._stratum_to_index[value] for value in self._data[self._stratum_col]]
 
     def __len__(self) -> int:
         return self._data.height
@@ -99,13 +99,13 @@ class TokenizedDataset(Dataset[dict[str, int]]):
             max_length=self._max_length,
             return_token_type_ids=False
         )
-        tokenizer_output["category_ids"] = self._category_to_index[category]
+        tokenizer_output["category_ids"] = self._stratum_to_index[category]
         tokenizer_output["labels"] = self._data[self._label_col][index]
         return tokenizer_output
 
     def __getitems__(self, indices: list[int]):
         prompts = self._data[self._prompt_col][indices]
-        categories = self._data[self._stratum_col][indices].map_elements(lambda x: self._category_to_index[x])
+        categories = self._data[self._stratum_col][indices].map_elements(lambda x: self._stratum_to_index[x])
         tokenizer_output = self._tokenizer(
             prompts.to_list(),
             padding=False,

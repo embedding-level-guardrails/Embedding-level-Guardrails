@@ -36,6 +36,7 @@ class TrainingContext:
 
 @dataclass
 class ModelTrainingState:
+    full_model_name: str
     model: torch.nn.Module
     optimizer: torch.optim.Optimizer
     scaler: torch.amp.GradScaler
@@ -81,7 +82,7 @@ def _build_data_loader(
     sampler = None
     if not is_val:
         sampler = MPerClassSampler(
-            dataset.category_ids,
+            dataset.strata_labels,
             m=cfg.training.sampler.number_of_samples_per_category,
             batch_size=cfg.training.sampler.batch_size,
             length_before_new_iter=cfg.training.sampler.number_of_samples_per_epoch,
@@ -118,15 +119,17 @@ def _prepare_training(cfg: DictConfig) -> TrainingContext:
 
 def _initialize_model(model_name: str, context: TrainingContext) -> ModelTrainingState:
     cfg = context.cfg
+    classifier_cfg = cfg.models.get("classifier", {})
+    embedder_cfg = cfg.models.get("embedder", {})
     match model_name:
         case "ettin-ce":
-            model = Classifier(model_name=cfg.models.backbone, **cfg.models.classifier)
+            model = Classifier(**classifier_cfg, model_name=cfg.models.backbone)
             encoder = model.embedder.encoder
         case "ettin-cl":
-            model = Embedder(model_name=cfg.models.backbone, **cfg.models.embedder)
+            model = Embedder(**embedder_cfg, model_name=cfg.models.backbone)
             encoder = model.encoder
         case _:
-            model = Classifier(model_name=cfg.models.backbone, **cfg.models.classifier, **cfg.models.embedder)
+            model = Classifier(**classifier_cfg, **embedder_cfg, model_name=cfg.models.backbone)
             encoder = model.embedder.encoder
     model = model.to(context.device)
     if cfg.training.gradient_checkpointing:
@@ -139,7 +142,12 @@ def _initialize_model(model_name: str, context: TrainingContext) -> ModelTrainin
         eps=cfg.optimizer.eps,
         fused=(context.device.type == "cuda"),
     )
+
+    parts = [model_name]
+    hypers = {**classifier_cfg, **embedder_cfg}
+    parts.extend(f"{key}={value}" for key, value in hypers.items())
     return ModelTrainingState(
+        full_model_name="-".join(parts),
         model=model,
         optimizer=optimizer,
         scaler=torch.amp.GradScaler(context.device.type, enabled=context.amp_dtype == torch.float16),
@@ -264,18 +272,11 @@ def train_joint_epoch(context: TrainingContext, state: ModelTrainingState) -> Ep
     return EpochMetrics(train_loss / train_samples, val_loss / val_samples)
 
 
-def _wandb_run_name(model_name: str, cfg: DictConfig) -> str:
-    parts = [model_name]
-    if model_name != "ettin-cl":
-        parts.extend(f"{key}={value}" for key, value in cfg.models.classifier.items())
-    if model_name != "ettin-ce":
-        parts.extend(f"{key}={value}" for key, value in cfg.models.embedder.items())
-    parts.append(f"lr={cfg.optimizer.lr:g}")
-    return "-".join(parts)
+def _wandb_run_name(full_model_name: str, cfg: DictConfig) -> str:
+    return full_model_name + f"-lr={cfg.optimizer.lr:g}"
 
 
 def _wandb_config(model_name: str, cfg: DictConfig) -> dict:
-    # Only send experiment settings; data contains authentication credentials.
     config = OmegaConf.to_container(
         OmegaConf.masked_copy(cfg, ["seed", "models", "optimizer", "supcon_loss", "tokenizer", "training"]),
         resolve=True,
@@ -294,8 +295,8 @@ def _train_model(
     output_dir = Path(cfg.training.output_dir) / model_name
     with wandb.init(
         **cfg.get("wandb", {}),
-        name=_wandb_run_name(model_name, cfg),
-        config=_wandb_config(model_name, cfg),
+        name=_wandb_run_name(state.full_model_name, cfg),
+        config=_wandb_config(state.full_model_name, cfg),
         reinit="create_new",
     ) as run:
         for epoch in tqdm(range(cfg.training.epochs), desc=model_name, unit="epoch"):
@@ -305,7 +306,7 @@ def _train_model(
                 "global_step": state.global_step,
                 "train/loss": metrics.train_loss,
                 "val/loss": metrics.val_loss,
-            }, step=state.global_step)
+            }, step=state.global_step, commit=True)
             if (epoch + 1) % cfg.training.save_every_epochs == 0 or (epoch + 1) == cfg.training.epochs:
                 save_checkpoint(
                     {
@@ -318,7 +319,7 @@ def _train_model(
                         "validation_loss": metrics.val_loss,
                         "config": OmegaConf.to_container(cfg, resolve=True),
                     },
-                    output_dir,
+                    output_dir / f"epoch_{epoch + 1}",
                 )
 
 
