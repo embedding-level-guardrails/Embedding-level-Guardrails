@@ -36,7 +36,7 @@ class TrainingContext:
 
 @dataclass
 class ModelTrainingState:
-    full_model_name: str
+    model_name: str
     model: torch.nn.Module
     optimizer: torch.optim.Optimizer
     scaler: torch.amp.GradScaler
@@ -118,19 +118,24 @@ def _prepare_training(cfg: DictConfig) -> TrainingContext:
     )
 
 
-def _initialize_model(model_name: str, context: TrainingContext) -> ModelTrainingState:
+def _initialize_model(model_type: str, context: TrainingContext) -> ModelTrainingState:
     cfg = context.cfg
     classifier_cfg = cfg.models.get("classifier", {})
     embedder_cfg = cfg.models.get("embedder", {})
-    match model_name:
-        case "ettin-ce":
+    name_parts = [model_type]
+    match model_type:
+        case "classifier":
             model = Classifier(**classifier_cfg, model_name=cfg.models.backbone)
             encoder = model.embedder.encoder
-        case "ettin-cl":
+            name_parts.extend(f"{key}={value}" for key, value in classifier_cfg.items())
+        case "embedder":
             model = Embedder(**embedder_cfg, model_name=cfg.models.backbone)
             encoder = model.encoder
+            name_parts.extend(f"{key}={value}" for key, value in embedder_cfg.items())
         case _:
             model = Classifier(**classifier_cfg, **embedder_cfg, model_name=cfg.models.backbone)
+            name_parts.extend(f"{key}={value}" for key, value in classifier_cfg.items())
+            name_parts.extend(f"{key}={value}" for key, value in embedder_cfg.items())
             encoder = model.embedder.encoder
     model = model.to(context.device)
     if cfg.training.gradient_checkpointing:
@@ -144,11 +149,8 @@ def _initialize_model(model_name: str, context: TrainingContext) -> ModelTrainin
         fused=(context.device.type == "cuda"),
     )
 
-    parts = [model_name]
-    hypers = {**classifier_cfg, **embedder_cfg}
-    parts.extend(f"{key}={value}" for key, value in hypers.items())
     return ModelTrainingState(
-        full_model_name="-".join(parts),
+        model_name="-".join(name_parts),
         model=model,
         optimizer=optimizer,
         scaler=torch.amp.GradScaler(context.device.type, enabled=context.amp_dtype == torch.float16),
@@ -297,20 +299,21 @@ def _wandb_config(model_name: str, cfg: DictConfig) -> dict:
 
 
 def _train_model(
-        model_name: str,
+        model_type: str,
         context: TrainingContext,
         epoch_loop: Callable[[TrainingContext, ModelTrainingState], EpochMetrics],
 ) -> None:
     cfg = context.cfg
-    state = _initialize_model(model_name, context)
-    output_dir = Path(cfg.training.output_dir) / model_name
+    state = _initialize_model(model_type, context)
+    output_dir = Path(cfg.training.output_dir) / state.model_name
+    best_val_loss = float("inf")
     with wandb.init(
         **cfg.get("wandb", {}),
-        name=_wandb_run_name(state.full_model_name, cfg),
-        config=_wandb_config(state.full_model_name, cfg),
+        name=_wandb_run_name(state.model_name, cfg),
+        config=_wandb_config(state.model_name, cfg),
         reinit="create_new",
     ) as run:
-        for epoch in tqdm(range(cfg.training.epochs), desc=model_name, unit="epoch"):
+        for epoch in tqdm(range(cfg.training.epochs), desc=model_type, unit="epoch"):
             metrics = epoch_loop(context, state)
             run.log({
                 "epoch": epoch + 1,
@@ -321,28 +324,30 @@ def _train_model(
             }, step=state.global_step, commit=True)
             if state.scheduler is not None:
                 state.scheduler.step()
-            if (epoch + 1) % cfg.training.save_every_epochs == 0 or (epoch + 1) == cfg.training.epochs:
+            if metrics.val_loss < best_val_loss:
                 save_checkpoint(
                     {
                         "model": state.model.state_dict(),
                         "optimizer": state.optimizer.state_dict(),
                         "scaler": state.scaler.state_dict(),
                         "scheduler": state.scheduler.state_dict() if state.scheduler is not None else None,
-                        "model_name": model_name,
+                        "model_name": model_type,
                         "epoch": epoch + 1,
                         "global_step": state.global_step,
                         "validation_loss": metrics.val_loss,
                         "config": OmegaConf.to_container(cfg, resolve=True),
                     },
-                    output_dir / f"epoch_{epoch + 1}",
+                    output_dir,
                 )
+                best_val_loss = metrics.val_loss
+                logger.info("Saved best checkpoint for %s: epoch %d, val_loss=%g", model_type, epoch + 1, best_val_loss)
 
 
 def train(cfg: DictConfig) -> None:
     epoch_loops = {
-        "ettin-ce": train_classifier_epoch,
-        "ettin-cl": train_embedder_epoch,
-        "ettin-joint": train_joint_epoch,
+        "classifier": train_classifier_epoch,
+        "embedder": train_embedder_epoch,
+        "joint-classifier": train_joint_epoch,
     }
     selection = cfg.training.models
     if selection == "all":
