@@ -6,7 +6,7 @@ import torch
 from omegaconf import DictConfig, OmegaConf
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
-from ettin_guardrails.model import Embedder, Classifier
+from ettin_guardrails.model import BaseClassifier, Classifier, LinearProbe, Embedder
 
 
 def save_checkpoint(training_checkpoint: dict[str, Any], output_path: str | Path):
@@ -16,13 +16,14 @@ def save_checkpoint(training_checkpoint: dict[str, Any], output_path: str | Path
     torch.save(training_checkpoint, output_dir / f"checkpoint_{timestamp}.pt")
 
 
-def load_classifier(checkpoint_path: str | Path) -> tuple[Classifier, PreTrainedTokenizerBase, DictConfig]:
+def load_classifier(checkpoint_path: str | Path) -> tuple[BaseClassifier, PreTrainedTokenizerBase, DictConfig]:
     checkpoint = torch.load(
         checkpoint_path,
         map_location="cpu",
     )
     config = OmegaConf.create(checkpoint["config"])
-    classifier = Classifier.load(checkpoint)
+    classifier_type = LinearProbe if checkpoint["model_name"] == "linear-probe" else Classifier
+    classifier = classifier_type.load(checkpoint)
     tokenizer = AutoTokenizer.from_pretrained(config.models.backbone)
     return classifier, tokenizer, config
 

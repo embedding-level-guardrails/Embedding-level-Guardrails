@@ -4,12 +4,12 @@ import torch
 from omegaconf import DictConfig
 from transformers import PreTrainedTokenizerBase
 
-from ettin_guardrails.model import Classifier
+from ettin_guardrails.model import BaseClassifier
 from ettin_guardrails.runtime import configure_precision
 
 
 def predict(
-        classifier: Classifier,
+        classifier: BaseClassifier,
         tokenizer: PreTrainedTokenizerBase,
         prompts: str | Iterable[str],
         config: DictConfig | dict[str, Any],

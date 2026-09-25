@@ -18,7 +18,7 @@ from transformers.utils import logging as transformers_logging
 
 from ettin_guardrails.checkpoint import save_checkpoint
 from ettin_guardrails.data import TokenizedDataset, load_data, split_validation_data
-from ettin_guardrails.model import Classifier, Embedder
+from ettin_guardrails.model import Classifier, LinearProbe, Embedder
 from ettin_guardrails.runtime import configure_device, configure_precision
 
 logger = logging.getLogger(__name__)
@@ -109,6 +109,9 @@ def _initialize_model(model_type: str, context: TrainingContext) -> ModelTrainin
     embedder_cfg = cfg.models.get("embedder", {})
     name_parts = [model_type]
     match model_type:
+        case "linear-probe":
+            model = LinearProbe(model_name=cfg.models.backbone)
+            encoder = model.backbone
         case "classifier":
             model = Classifier(**classifier_cfg, model_name=cfg.models.backbone)
             encoder = model.embedder.encoder
@@ -123,10 +126,10 @@ def _initialize_model(model_type: str, context: TrainingContext) -> ModelTrainin
             name_parts.extend(f"{key}={value}" for key, value in embedder_cfg.items())
             encoder = model.embedder.encoder
     model = model.to(context.device)
-    if cfg.training.gradient_checkpointing:
+    if cfg.training.gradient_checkpointing and any(parameter.requires_grad for parameter in encoder.parameters()):
         encoder.gradient_checkpointing_enable()
     optimizer = torch.optim.AdamW(
-        model.parameters(),
+        (parameter for parameter in model.parameters() if parameter.requires_grad),
         lr=cfg.optimizer.lr,
         weight_decay=cfg.optimizer.weight_decay,
         betas=tuple(cfg.optimizer.betas),
@@ -162,6 +165,7 @@ def _backward_step(loss: torch.Tensor, context: TrainingContext, state: ModelTra
 
 
 def train_classifier_epoch(context: TrainingContext, state: ModelTrainingState) -> EpochMetrics:
+    """Train either classifier implementation with cross-entropy."""
     train_loss = 0.0
     train_samples = 0
     val_loss = 0.0
@@ -330,6 +334,7 @@ def _train_model(
 
 def train(cfg: DictConfig) -> None:
     epoch_loops = {
+        "linear-probe": train_classifier_epoch,
         "classifier": train_classifier_epoch,
         "embedder": train_embedder_epoch,
         "joint-classifier": train_joint_epoch,
