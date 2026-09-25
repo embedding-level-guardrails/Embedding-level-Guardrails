@@ -11,7 +11,7 @@ def load_data(
         prompt_col: str = "prompt",
         stratum_col: str = "subcategory",
         label_col: str = "prompt_harm_label",
-        harmful_label: str = "harmful"
+        harmful_label: str = "harmful",
 ) -> pl.DataFrame:
     return (
         pl.read_parquet(hf_dataset_path, storage_options={"token": get_token()})
@@ -26,7 +26,7 @@ def load_data(
         .select(
             pl.col(prompt_col).alias("prompt"),
             pl.col(stratum_col).alias("category"),
-            (pl.col(label_col) == harmful_label).alias("label")
+            (pl.col(label_col) == harmful_label).cast(dtype=int).alias("label")
         ).with_row_index(name="id")
     )
 
@@ -67,7 +67,7 @@ class TokenizedDataset(Dataset[dict[str, int]]):
     def __init__(self,
                  data: pl.DataFrame,
                  tokenizer: PreTrainedTokenizerBase,
-                 max_length: int = 7999,
+                 max_length: int,
                  prompt_col: str = "prompt",
                  stratum_col: str = "category",
                  label_col: str = "label",

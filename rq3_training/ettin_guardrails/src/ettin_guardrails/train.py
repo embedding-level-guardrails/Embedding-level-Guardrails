@@ -19,6 +19,7 @@ from transformers.utils import logging as transformers_logging
 from ettin_guardrails.checkpoint import save_checkpoint
 from ettin_guardrails.data import TokenizedDataset, load_data, split_validation_data
 from ettin_guardrails.model import Classifier, Embedder
+from ettin_guardrails.runtime import configure_device, configure_precision
 
 logger = logging.getLogger(__name__)
 
@@ -50,26 +51,10 @@ class EpochMetrics:
     val_loss: float
 
 
-def _configure_device(cfg: DictConfig) -> torch.device:
-    device_name = cfg.training.device
-    if device_name == "auto":
-        device_name = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu")
-    return torch.device(device_name)
-
-
 def _configure_precision(cfg: DictConfig, device: torch.device) -> torch.dtype:
-    precision = str(cfg.training.get("precision", "auto")).lower()
-    if precision == "auto":
-        if device.type == "cuda":
-            with torch.cuda.device(device):
-                precision = "bf16" if torch.cuda.is_bf16_supported() else "fp16"
-        else:
-            precision = "fp16" if device.type == "mps" else "fp32"
-    dtypes = {"fp32": torch.float32, "fp16": torch.float16, "bf16": torch.bfloat16}
-    if precision not in dtypes:
-        raise ValueError("training.precision must be auto, fp32, fp16, or bf16")
+    precision = configure_precision(cfg, device)
     logger.info("Training precision: %s on %s", precision, device)
-    return dtypes[precision]
+    return precision
 
 
 def _build_data_loader(
@@ -102,7 +87,7 @@ def _build_data_loader(
 
 def _prepare_training(cfg: DictConfig) -> TrainingContext:
     set_seed(cfg.seed)
-    device = _configure_device(cfg)
+    device = configure_device(cfg)
     amp_dtype = _configure_precision(cfg, device)
     data = load_data(**cfg.data)
     train_data, val_data = split_validation_data(data, seed=cfg.seed, **cfg.training.validation)
