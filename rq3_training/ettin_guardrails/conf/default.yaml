@@ -6,9 +6,8 @@ wandb:
   mode: online
 
 models:
-  backbone: jhu-clsp/ettin-encoder-68m
   classifier:
-    head_hidden_dim: 1024
+    head_hidden_dim: 256
 
 supcon_loss:
   temperature: 0.1
@@ -32,7 +31,7 @@ tokenizer:
   max_length: 2048
 
 training:
-  models: all # linear-probe, classifier, embedder, or joint-classifier
+  models: all # linear-probe, classifier, embedder
   sampler:
     number_of_samples_per_category: 8
     batch_size: 32

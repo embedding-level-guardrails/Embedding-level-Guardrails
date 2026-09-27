@@ -18,7 +18,7 @@ from transformers.utils import logging as transformers_logging
 
 from ettin_guardrails.checkpoint import save_checkpoint
 from ettin_guardrails.data import TokenizedDataset, load_data, split_validation_data
-from ettin_guardrails.model import Classifier, LinearProbe, Embedder
+from ettin_guardrails.model import Classifier, LinearProbe, Embedder, BACKBONE
 from ettin_guardrails.runtime import configure_device, configure_precision
 
 logger = logging.getLogger(__name__)
@@ -91,7 +91,7 @@ def _prepare_training(cfg: DictConfig) -> TrainingContext:
     amp_dtype = _configure_precision(cfg, device)
     data = load_data(**cfg.data)
     train_data, val_data = split_validation_data(data, seed=cfg.seed, **cfg.training.validation)
-    tokenizer = AutoTokenizer.from_pretrained(cfg.models.backbone)
+    tokenizer = AutoTokenizer.from_pretrained(BACKBONE)
     return TrainingContext(
         cfg=cfg,
         device=device,
@@ -110,21 +110,18 @@ def _initialize_model(model_type: str, context: TrainingContext) -> ModelTrainin
     name_parts = [model_type]
     match model_type:
         case "linear-probe":
-            model = LinearProbe(model_name=cfg.models.backbone)
+            model = LinearProbe()
             encoder = model.backbone
         case "classifier":
-            model = Classifier(**classifier_cfg, model_name=cfg.models.backbone)
+            model = Classifier(**classifier_cfg)
             encoder = model.embedder.encoder
             name_parts.extend(f"{key}={value}" for key, value in classifier_cfg.items())
         case "embedder":
-            model = Embedder(**embedder_cfg, model_name=cfg.models.backbone)
+            model = Embedder(**embedder_cfg)
             encoder = model.encoder
             name_parts.extend(f"{key}={value}" for key, value in embedder_cfg.items())
         case _:
-            model = Classifier(**classifier_cfg, **embedder_cfg, model_name=cfg.models.backbone)
-            name_parts.extend(f"{key}={value}" for key, value in classifier_cfg.items())
-            name_parts.extend(f"{key}={value}" for key, value in embedder_cfg.items())
-            encoder = model.embedder.encoder
+            raise ValueError(f"unknown model type {model_type}")
     model = model.to(context.device)
     if cfg.training.gradient_checkpointing and any(parameter.requires_grad for parameter in encoder.parameters()):
         encoder.gradient_checkpointing_enable()
@@ -176,7 +173,7 @@ def train_classifier_epoch(context: TrainingContext, state: ModelTrainingState) 
         attn_mask = batch["attention_mask"].to(context.device)
         labels = batch["labels"].to(context.device)
         with torch.autocast(context.device.type, dtype=context.amp_dtype, enabled=context.amp_enabled):
-            logits, _ = state.model(input_ids, attn_mask)
+            logits = state.model(input_ids, attn_mask)
         loss = cross_entropy(logits.float(), labels.long())
         train_loss += loss.cpu().item() * input_ids.shape[0]
         train_samples += input_ids.shape[0]
@@ -191,7 +188,7 @@ def train_classifier_epoch(context: TrainingContext, state: ModelTrainingState) 
             attn_mask = batch["attention_mask"].to(context.device)
             labels = batch["labels"].to(context.device)
             with torch.autocast(context.device.type, dtype=context.amp_dtype, enabled=context.amp_enabled):
-                logits, _ = state.model(input_ids, attn_mask)
+                logits = state.model(input_ids, attn_mask)
             loss = cross_entropy(logits.float(), labels.long())
             val_loss += loss.cpu().item() * input_ids.shape[0]
             val_samples += input_ids.shape[0]
@@ -236,44 +233,6 @@ def train_embedder_epoch(context: TrainingContext, state: ModelTrainingState) ->
     return EpochMetrics(train_loss / train_samples, val_loss / val_samples)
 
 
-def train_joint_epoch(context: TrainingContext, state: ModelTrainingState) -> EpochMetrics:
-    train_loss = 0.0
-    train_samples = 0
-    val_loss = 0.0
-    val_samples = 0
-
-    state.model.train()
-    for batch in tqdm(context.train_loader, desc="Training joint model", unit="batch", leave=False):
-        input_ids = batch["input_ids"].to(context.device)
-        attn_mask = batch["attention_mask"].to(context.device)
-        cat_ids = batch["category_ids"].to(context.device)
-        labels = batch["labels"].to(context.device)
-        with torch.autocast(context.device.type, dtype=context.amp_dtype, enabled=context.amp_enabled):
-            logits, embeddings = state.model(input_ids, attn_mask)
-        loss = context.supcon_fn(embeddings.float(), cat_ids) + cross_entropy(logits.float(), labels.long())
-        train_loss += loss.cpu().item() * input_ids.shape[0]
-        train_samples += input_ids.shape[0]
-        state.global_step += 1
-        _backward_step(loss, context, state)
-        state.optimizer.zero_grad()
-
-    state.model.eval()
-    with torch.inference_mode():
-        for batch in tqdm(context.val_loader, desc="Validating joint model", unit="batch", leave=False):
-            state.optimizer.zero_grad()
-            input_ids = batch["input_ids"].to(context.device)
-            attn_mask = batch["attention_mask"].to(context.device)
-            cat_ids = batch["category_ids"].to(context.device)
-            labels = batch["labels"].to(context.device)
-            with torch.autocast(context.device.type, dtype=context.amp_dtype, enabled=context.amp_enabled):
-                logits, embeddings = state.model(input_ids, attn_mask)
-            loss = context.supcon_fn(embeddings.float(), cat_ids) + cross_entropy(logits.float(), labels.long())
-            val_loss += loss.cpu().item() * input_ids.shape[0]
-            val_samples += input_ids.shape[0]
-
-    return EpochMetrics(train_loss / train_samples, val_loss / val_samples)
-
-
 def _wandb_run_name(full_model_name: str, cfg: DictConfig) -> str:
     return full_model_name + f"-lr={cfg.optimizer.lr:g}"
 
@@ -294,11 +253,12 @@ def _train_model(
 ) -> None:
     cfg = context.cfg
     state = _initialize_model(model_type, context)
-    output_dir = Path(cfg.training.output_dir) / state.model_name
+    run_name = _wandb_run_name(state.model_name, cfg)
+    output_dir = Path(cfg.training.output_dir) / run_name
     best_val_loss = float("inf")
     with wandb.init(
         **cfg.get("wandb", {}),
-        name=_wandb_run_name(state.model_name, cfg),
+        name=run_name,
         config=_wandb_config(state.model_name, cfg),
         reinit="create_new",
     ) as run:
@@ -337,7 +297,6 @@ def train(cfg: DictConfig) -> None:
         "linear-probe": train_classifier_epoch,
         "classifier": train_classifier_epoch,
         "embedder": train_embedder_epoch,
-        "joint-classifier": train_joint_epoch,
     }
     selection = cfg.training.models
     if selection == "all":

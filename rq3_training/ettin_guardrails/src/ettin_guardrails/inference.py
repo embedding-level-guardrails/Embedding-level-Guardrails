@@ -59,7 +59,7 @@ def _predict_batch(classifier, tokenizer, prompts, config, device, amp_dtype):
         return_tensors="pt",
     )
     with torch.autocast(device.type, dtype=amp_dtype, enabled=(amp_dtype != torch.float32)):
-        logits, _ = classifier(
+        logits = classifier(
             input_ids=inputs["input_ids"].to(device),
             attention_mask=inputs["attention_mask"].to(device),
         )
