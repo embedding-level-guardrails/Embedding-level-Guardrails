@@ -162,10 +162,10 @@ class LinearProbe(BaseClassifier):
     ):
         super().__init__()
         if _load_local:
-            config = AutoConfig.from_pretrained(model_name)
+            config = AutoConfig.from_pretrained(BACKBONE)
             self.backbone = AutoModel.from_config(config)
         else:
-            self.backbone = AutoModel.from_pretrained(model_name)
+            self.backbone = AutoModel.from_pretrained(BACKBONE)
         # Buffers follow device/dtype changes and remain in checkpoints, but
         # are excluded from parameters() and autograd.
         for module in self.backbone.modules():
@@ -196,7 +196,6 @@ class LinearProbe(BaseClassifier):
         if model_type != "linear-probe":
             raise ValueError(f"Expected a linear-probe checkpoint, got {model_type}")
 
-        models_config = checkpoint["config"]["models"]
-        model = cls(model_name=models_config["backbone"], _load_local=True)
+        model = cls(_load_local=True)
         model.load_state_dict(checkpoint["model"])
         return model
