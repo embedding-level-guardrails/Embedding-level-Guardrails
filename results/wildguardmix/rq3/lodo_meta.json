@@ -1,0 +1,22 @@
+{
+  "encoder": "e5-small-v2",
+  "target_fpr": 0.01,
+  "holdout": {
+    "dataset": "wildguardmix",
+    "n": 1699,
+    "harm_rate": 0.444
+  },
+  "ood": {
+    "dataset": "toxicchat",
+    "config": "toxicchat0124",
+    "label_field": "any",
+    "n": 2853,
+    "harm_rate": 0.127
+  },
+  "models": [
+    "e5-small-v2-frozen",
+    "wgm-classification",
+    "wgm-contrastive",
+    "wgm-joint"
+  ]
+}
