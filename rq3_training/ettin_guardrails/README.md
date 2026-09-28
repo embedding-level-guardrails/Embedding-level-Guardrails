@@ -1,50 +1,60 @@
-# Commands for Running Training
+# Анализ классификаторов
 
+##  Данные
 
-## 1. Create the environment with uv
+Для обучения использованы уникальные промпты из train части датасета WildGuardMix, за исключением пустых строк и
+промптов с конфликтующими лэйблами (`"prompt_harm_label"`) и неоднозначными (`"subcategory"`) категориями риска. При обучении 
+классификаторов поддерживалась равная пропорция классов в батче, при дообучении ettin-encoder на SupCon батч содержал 8 
+различных `"subcategory"` в равной пропорции.
 
-Install [uv](https://docs.astral.sh/uv/) and make sure `make` is available.
-The project requires Python 3.13 or later. From the repository root, run:
+## Модели
 
-```bash
-cd rq3_training/ettin_guardrails
-uv venv --python 3.13
-uv sync --locked
-```
+Энкодер: [jhu-clsp/ettin-encoder-68m](https://huggingface.co/jhu-clsp/ettin-encoder-68m), эмбеддинги промптов получены
+усреднением выхода энкодера
 
-## 2. Log in to Weights & Biases
+1. Baseline: линейная проба
+2. Classifier: классифицирующая голова с hidden_dim=256 и ReLU над энкодером, обученная на CE
+3. Finetuned Embedder: эмбеддинги промптов дообучены с помощью SupCon на сближение внутри одной категории риска согласно
+разметке в WildGuardMix.
+4. Finetuned Classifier: классифицирующая голова с hidden_dim=256 и ReLU над finetuned embedder, обученная на CE
 
-```bash
-uv run wandb login
-```
+## Метрики
 
+### Holdout выборка: test часть датасета WildGuardMix
 
-## 3. Log in to Hugging Face
+Finetuned Classifier лучше ранжирует большинство промптов, это видно по соотношению precision-recall и FPR-TPR на всех порогах,
+но по TPR@FPR=0.01 проигрывает бейзлайну.
 
-```bash
-uv run hf auth login
-```
+<img src="notebooks/images/holdout_metrics.png" alt="Метрики моделей" width="50%">
 
-The default configuration downloads the
-`jhu-clsp/ettin-encoder-68m` backbone and the `allenai/wildguardmix` training data
-from Hugging Face.
+Распределение скоров на отрицательных объектах подтверждает, что более сложные модели основной массе промптов назначают низкий скор,
+но имеют небольшой пик в правой части распределения, в то время как бейзлайн менее подвержен назначать экстремальный скор
+негативным объектам.
 
-## 4. Start training through a Makefile target
+<img src="notebooks/images/score_distribution_negative_holdout.png" alt="Метрики моделей" width="90%">
 
-Linear probe:
+Проблемные промпты можно найти в [ноутбуке](notebooks/negative_holdout_analysis.ipynb), большинство из них adversarial.
 
-```bash
-make linear-probe batch_size=64 num_per_category=32
-```
+Для vanilla промптов harmful определяются ожидаемо лучше для всех моделей, Finetuned Classifier также лучше ранжирует
+промпты, но уступает обычному Classifier по FPR и TPR@FPR=0.01.
 
-Classifier:
+<img src="notebooks/images/holdout_vanilla_metrics.png" alt="Метрики моделей" width="50%">
 
-```bash
-make classifier batch_size=32 num_per_category=16
-```
+Для adversarial промптов ситуация похожая, Finetuned Classifier также лучше ранжирует, но уступает по TPR@FPR=0.01.
 
-Embedder:
+<img src="notebooks/images/holdout_adversarial_metrics.png" alt="Метрики моделей" width="50%">
 
-```bash
-make embedder batch_size=32 num_per_category=4
-```
+ 
+### OOD выборка: test часть датасета toxic_chat
+
+В датасете toxic_chat доля положительных объектов около 7%, все модели переносятся на новый датасет (PR AUC > 0.07),
+но при пороге @FPR=0.01 пропускают больше 80% опасных промптов.
+
+<img src="notebooks/images/ood_metrics.png" alt="Метрики моделей" width="50%">
+
+## Калибровочная кривая (holdout dataset)
+
+Бейзлайн лучше откалиброван, сильные скачки для вероятностей в промежутке от 0.2-0.6 для более сложных моделей скорее
+свидетельствуют о том, что они склонны давать более экстремальные скоры для проптов и следовательно хуже откалиброваны.
+
+<img src="notebooks/images/calibration_curve.png" alt="Метрики моделей" width="70%">

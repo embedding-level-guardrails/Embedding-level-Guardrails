@@ -22,7 +22,7 @@ linear-probe:
 
 ettin-classifier:
 	@cd "$(TRAIN_DIR)" && uv run -m ettin_guardrails.train training.models=classifier \
-	training.epochs=5 \
+	training.epochs=7 \
 	optimizer.lr=1e-6 \
 	+tokenizer.stratum_col=label \
 	+training.validation.stratum_col=label \
@@ -33,7 +33,7 @@ ettin-classifier:
 
 embedder:
 	@cd "$(TRAIN_DIR)" && uv run -m ettin_guardrails.train training.models=embedder \
-	training.epochs=4 \
+	training.epochs=5 \
 	optimizer.lr=1e-6 \
 	training.sampler.batch_size=32 \
 	training.sampler.number_of_samples_per_category=4 \
@@ -42,7 +42,7 @@ embedder:
 
 finetuned-ettin-classifier:
 	@cd "$(TRAIN_DIR)" && uv run -m ettin_guardrails.train training.models=classifier \
-	training.epochs=8 \
+	training.epochs=7 \
 	optimizer.lr=1e-6 \
 	+models.classifier.backbone_name=$(backbone_name) \
 	+tokenizer.stratum_col=label \
