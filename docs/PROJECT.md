@@ -5,8 +5,16 @@
 эмбеддингов, и можно ли усилить это разделение contrastive-дообучением.
 
 **Энкодеры:** `jhu-clsp/ettin-encoder-68m`, `jhu-clsp/mmBERT-small`, `intfloat/e5-small-v2`.
-**Данные:** AEGIS (`nvidia/Aegis-AI-Content-Safety-Dataset-1.0`) + HarmBench (behaviors).
+**Данные для обучения:** WildGuardMix (`allenai/wildguardmix`) — основной набор;
+AEGIS (`nvidia/Aegis-AI-Content-Safety-Dataset-1.0`) — первый эксперимент и RQ1;
+HarmBench (behaviors) — источник затравок для jailbreak-вариантов.
 **OOD для LODO:** ToxicChat (`lmsys/toxic-chat`, конфиг `toxicchat0124`).
+
+**Главный результат на сейчас (RQ3):** в своём домене CE, contrastive и CE + contrastive
+неразличимы, но при переносе на чужой трафик модель, обученная только с CE, теряет рабочую
+точку с низким FPR. Эффект воспроизвёлся на двух обучающих наборах. Переход с AEGIS на
+WildGuardMix улучшил перенос сильнее, чем любая смена objective. Подробно —
+[results/rq3/REPORT.md](../results/rq3/REPORT.md).
 
 Обозначения ниже: `x` — эмбеддинг текста, `y ∈ {0,1}` — метка (0 = safe, 1 = harm),
 `μ_safe`, `μ_harm` — центроиды классов, `α = 0.01` — целевой FPR.
@@ -114,23 +122,42 @@ make rq1           # шаги 02..06 + сборка отчёта
 
 ## RQ2 — какие пары нужны для обучения
 
-**Статус:** выполнено, сводка в [results/rq2/PAIRS.md](../results/rq2/PAIRS.md).
+**Статус:** выполнено для двух наборов — сводки в [results/rq2/PAIRS.md](../results/rq2/PAIRS.md)
+(AEGIS) и [results/wildguardmix/rq2/PAIRS.md](../results/wildguardmix/rq2/PAIRS.md) (WildGuardMix).
+Абляция по типам пар (сам вопрос RQ2) ещё не прогонялась.
 
 ### Что сделано
 
-Собраны обучающие пары из AEGIS + HarmBench в формате триплета
-`(anchor, positive, negative)` с тегом `pair_type`. Триплет выбран потому, что он
-одинаково ложится и на InfoNCE с in-batch negatives, и на triplet margin, и на SupCon,
-а абляция «какой тип пар сколько даёт» сводится к фильтру по полю `pair_type`.
+Собраны обучающие пары в формате триплета `(anchor, positive, negative)` с тегом
+`pair_type`: сначала из AEGIS + HarmBench, затем из WildGuardMix + HarmBench. Триплет выбран
+потому, что он одинаково ложится и на InfoNCE с in-batch negatives, и на triplet margin, и на
+SupCon, а абляция «какой тип пар сколько даёт» сводится к фильтру по полю `pair_type`.
 
-Четыре типа пар:
+Пять типов пар:
 
 | Тип | Что учит | Как строится |
 |:--|:--|:--|
 | `safe_harm_contrast` | базовый контраст класса | positive — другой пример того же класса, по возможности той же категории вреда; negative — случайный пример другого класса |
 | `paraphrase` | инвариантность к форме запроса | positive — поверхностный парафраз якоря |
-| `jailbreak_variant` | обёртка не делает вредоносный запрос безопасным | positive — behavior HarmBench в jailbreak-обёртке |
+| `jailbreak_variant` | обёртка не делает вредоносный запрос безопасным | positive — вредоносная затравка в шаблонной jailbreak-обёртке |
 | `benign_twin` | hard negatives | negative — лексически ближайший safe, намайненный по косинусу |
+| `adversarial_contrast` | то же, что jailbreak_variant, но на реальных jailbreak-промтах (только WildGuardMix) | anchor — adversarial-промт; positive — vanilla-промт того же класса; negative — adversarial-промт другого класса |
+
+`adversarial_contrast` использует главное свойство WildGuardMix: adversarial-промты там есть
+в обоих классах, в том числе безопасные — с jailbreak-обёрткой, но без вредного содержания.
+Якорь с позитивом совпадают по содержанию, якорь с негативом — по форме, так что лосс тянет
+к содержанию и отталкивает от формы. Строится в обе стороны:
+
+```
+harm-якорь: adversarial harmful   → positive: vanilla harmful (той же категории) → negative: adversarial unharmful
+safe-якорь: adversarial unharmful → positive: vanilla unharmful                 → negative: adversarial harmful
+```
+
+У AEGIS флага `adversarial` нет, поэтому для него этот тип пустой.
+
+Затравки для шаблонных jailbreak-обёрток задаются параметром `jailbreak_seeds`: `harmbench`
+(behaviors HarmBench, так собраны пары AEGIS), `dataset` (vanilla-вредоносные промты датасета)
+или `both`. Adversarial-промты повторно не оборачиваются.
 
 Половина пар строится от safe-якоря (`safe_anchor_fraction: 0.5`): если тянуть только
 harm, обучение стягивает вредоносный кластер и ничего не говорит о структуре безопасной
@@ -165,30 +192,78 @@ AEGIS содержит повторяющиеся тексты, пересека
 чистятся до сборки: сначала дедупликация внутри сплита, затем вычитание текстов более
 приоритетных сплитов. Приоритет `test > val > train` — оценочный сплит не жертвуем ничем.
 Отдельно фильтруются записи для майнинга benign twins: матрица эмбеддингов лежит
-построчно к исходному jsonl и в обход пулов протаскивала дубликаты. Проверено:
-пересечение уникальных текстов между всеми тремя сплитами равно нулю.
+построчно к исходному jsonl и в обход пулов протаскивала дубликаты. Behaviors HarmBench,
+дословно совпадающие с промтами из val/test основного датасета, из train тоже убираются.
+Проверено на обоих наборах: пересечение уникальных текстов между всеми тремя сплитами равно
+нулю.
+
+### Воспроизводимость
+
+До исправления сид сплита считался как `cfg.seed + hash(split)`, а `hash()` строк в Python
+меняется в каждом процессе, поэтому каждый запуск давал другие пары. Теперь используется
+`zlib.crc32`, и повторный запуск даёт идентичный результат. Следствие: наборы
+`aegis_harmbench_v1` и `v2` собраны со случайными сидами и в точности не пересобираются.
+Они корректны и без утечек, но при пересборке пары AEGIS будут другими. На CUDA эмбеддинги
+для майнинга считаются в fp16, поэтому `benign_twin` на разных машинах может немного
+отличаться.
 
 ### Код
 
 | Файл | Роль |
 |:--|:--|
-| [src/eguard/pairs/sources.py](../src/eguard/pairs/sources.py) | загрузка HarmBench (CSV с GitHub, без HF-токена) и AEGIS |
+| [src/eguard/data/wildguardmix.py](../src/eguard/data/wildguardmix.py) | загрузка и нормализация WildGuardMix |
+| [src/eguard/pairs/sources.py](../src/eguard/pairs/sources.py) | загрузка HarmBench (CSV с GitHub, без HF-токена) и нормализованных записей датасета |
 | [src/eguard/pairs/transforms.py](../src/eguard/pairs/transforms.py) | парафразы и jailbreak-обёртки |
-| [src/eguard/pairs/builders.py](../src/eguard/pairs/builders.py) | четыре строителя пар, дедупликация, `flatten_texts` |
+| [src/eguard/pairs/builders.py](../src/eguard/pairs/builders.py) | пять строителей пар, выбор jailbreak-затравок, дедупликация, `flatten_texts` |
 | [src/eguard/pairs/__init__.py](../src/eguard/pairs/__init__.py) | оркестрация, фильтры пулов, пути на диске |
 | [scripts/07_build_pairs.py](../scripts/07_build_pairs.py) | CLI, сводка размеров |
-| [configs/rq2_pairs.yaml](../configs/rq2_pairs.yaml) | зафиксированные размеры и параметры |
+| [configs/rq2_pairs.yaml](../configs/rq2_pairs.yaml) | AEGIS: зафиксированные размеры и параметры |
+| [configs/rq2_pairs_wildguardmix.yaml](../configs/rq2_pairs_wildguardmix.yaml) | WildGuardMix: подготовка данных, эмбеддинги для майнинга и пары одним конфигом |
 
 ### Как запустить
 
 ```bash
-make pairs
+make pairs         # AEGIS
+make wgm-pairs     # WildGuardMix: данные -> эмбеддинги e5 -> пары (нужен HF-токен, датасет gated)
 ```
 
 Варианты: `--types safe_harm_contrast jailbreak_variant` (подмножество),
 `--scale 0.05` (быстрый прогон на срезе), `--splits train` (один сплит).
 
-### Зафиксированные размеры (набор `aegis_harmbench_v2`)
+### WildGuardMix: данные
+
+Два конфига на HF: `wildguardtrain` (86 759 строк, разметка LLM) и `wildguardtest`
+(1 725 строк, разметка людьми, 3 аннотатора). Датасет gated: нужно принять условия на странице
+датасета и войти через `hf auth login`.
+
+Строки train — пары «промт + ответ», один промт встречается с разными ответами. Guardrail
+видит только промт, поэтому строки дедуплицируются по тексту промта; промты с разными
+метками в разных строках выбрасываются. Метка — `prompt_harm_label`, категория —
+`subcategory`, флаг `adversarial` сохраняется в записи.
+
+| сплит | уникальных промтов | harm_rate | доля adversarial | медиана длины, символов |
+|:--|--:|--:|--:|--:|
+| train | 43 025 | 0.518 | 0.479 | 298 |
+| val | 4 781 | 0.518 | 0.478 | 284 |
+| test (WildGuardTest) | 1 699 | 0.444 | 0.469 | 250 |
+
+86 759 строк → 47 806 уникальных промтов; 15 выброшены из-за конфликта меток, 26 строк test —
+без метки промта. Val отрезан от train. Промты примерно в 6 раз длиннее, чем в AEGIS (медиана
+52) и ToxicChat (63). С ToxicChat пересекаются 8 из 2 790 промтов.
+
+### Зафиксированные размеры: WildGuardMix (набор `wildguardmix_harmbench_v1`)
+
+| split | пар | уник. текстов | contrast | paraphrase | jailbreak | adversarial | benign_twin |
+|:--|--:|--:|--:|--:|--:|--:|--:|
+| train | 32 538 | 48 985 | 12000 | 4539 | 4999 | 8000 | 3000 |
+| val | 3 256 | 5 166 | 1200 | 456 | 500 | 800 | 300 |
+| test | 3 233 | 2 802 | 1200 | 434 | 500 | 799 | 300 |
+
+`jailbreak_seeds: both`. HarmBench включён, но теряется среди ~22 тысяч вредоносных промтов
+WildGuardMix: на него приходится 0.9% пар и 1.0% текстов train. Фактически это обучение на
+WildGuardMix.
+
+### Зафиксированные размеры: AEGIS (набор `aegis_harmbench_v2`)
 
 | split | пар | уник. текстов | harm_rate | contrast | paraphrase | jailbreak | benign_twin |
 |:--|--:|--:|--:|--:|--:|--:|--:|
@@ -217,7 +292,10 @@ make pairs
 
 ## RQ3 — улучшает ли contrastive objective FPR/FNR по сравнению с classification head
 
-**Статус:** выполнено, отчёт в [results/rq3/LODO.md](../results/rq3/LODO.md). Это ядро проекта.
+**Статус:** выполнено на двух обучающих наборах. Сводный отчёт с выводами —
+[results/rq3/REPORT.md](../results/rq3/REPORT.md); таблицы по экспериментам —
+[results/wildguardmix/rq3/LODO.md](../results/wildguardmix/rq3/LODO.md) (основной) и
+[results/rq3/LODO.md](../results/rq3/LODO.md) (AEGIS). Это ядро проекта.
 
 ### Что сделано
 
@@ -228,8 +306,19 @@ make pairs
 - **(б)** `contrastive` — только contrastive-лосс на триплетах,
 - **(в)** `joint` — CE + contrastive.
 
-Оценка на hold-out (AEGIS test) и OOD (ToxicChat) по схеме LODO: обучались на AEGIS,
-тестируем на реальном трафике чат-бота.
+Эксперимент проведён дважды. Оценка — на hold-out своего набора и на OOD (ToxicChat) по
+схеме LODO: обучались на одном наборе, тестируем на реальном трафике чат-бота.
+
+| | эксперимент 1 | эксперимент 2 (основной) |
+|:--|:--|:--|
+| пары | `aegis_harmbench_v1` | `wildguardmix_harmbench_v1` |
+| триплетов / уникальных текстов в train | 16 765 / 7 904 | 32 538 / 48 985 |
+| доля HarmBench в train: пары / тексты | 25.8% / 10.8% | 0.9% / 1.0% |
+| шагов CE / contrastive / joint | 494 / 1046 / 1046 | 3060 / 2032 / 2032 |
+| валидация | AEGIS val, 257 | WildGuardMix val, 4 781 |
+| hold-out | AEGIS test, 308, harm 0.597 | WildGuardTest, 1 699, harm 0.444 |
+| OOD | ToxicChat test, 2 853, harm 0.127 | то же |
+| железо, время | Apple M-series (MPS), ~40 мин | RTX 5070 Ti, ~2–2.5 ч с оценкой |
 
 ### Формулы
 
@@ -282,18 +371,20 @@ lr(t) = lr₀ · ½·(1 + cos(π · (t−W)/(T−W)))           при t ≥ W
 **Единый readout.** Три objective дают три разных пространства, и у чисто
 contrastive-варианта своей головы нет вообще — «каждый мерится своей головой» некорректно.
 Поэтому основная таблица `probe_logreg`: поверх эмбеддингов каждой модели обучается **один
-и тот же** линейный проб на AEGIS train. Различается только пространство. Родная голова и
-центроидный скор идут дополнительными строками.
+и тот же** линейный проб на train своего набора. Различается только пространство. Родная
+голова и центроидный скор идут дополнительными строками.
 
-Это не формальность: на валидации во время обучения CE выглядел лучше contrastive
-(TPR@FPR 0.736 против 0.642), но там CE мерился своей головой, а contrastive — центроидным
-расстоянием. При едином пробе порядок переворачивается.
+Это не формальность: на AEGIS во время обучения CE выглядел лучше contrastive (TPR@FPR 0.736
+против 0.642), но там CE мерился своей головой, а contrastive — центроидным расстоянием. При
+едином пробе порядок перевернулся. И обратная проверка: на WildGuardMix у CE-модели единый
+проб и родная голова дают почти одинаковые числа (AUROC 0.928 и 0.930), то есть единый
+readout CE-вариант не занижает.
 
-**Порог с val, а не с теста.** FPR/FNR репортятся при пороге, выставленном на AEGIS val
-при FPR=1%, и этот же порог без перекалибровки применяется к hold-out и к OOD:
+**Порог с val, а не с теста.** FPR/FNR репортятся при пороге, выставленном на val своего
+набора при FPR=1%, и этот же порог без перекалибровки применяется к hold-out и к OOD:
 
 ```
-τ* = threshold at FPR = 1% on AEGIS val
+τ* = threshold at FPR = 1% on val
 FPR/FNR(holdout) и FPR/FNR(ood) считаются при том же τ*
 ```
 
@@ -315,7 +406,16 @@ TPR@FPR=1%, посчитанные на каждом наборе отдельн
 | [src/eguard/analysis/probe.py](../src/eguard/analysis/probe.py) | `fit_transfer_probe` для LODO |
 | [scripts/08_train_contrastive.py](../scripts/08_train_contrastive.py) | обучение |
 | [scripts/09_eval_lodo.py](../scripts/09_eval_lodo.py) | сравнение hold-out против OOD |
-| [configs/rq3_contrastive.yaml](../configs/rq3_contrastive.yaml), [configs/ood_toxicchat.yaml](../configs/ood_toxicchat.yaml) | конфигурации |
+| [configs/rq3_wildguardmix.yaml](../configs/rq3_wildguardmix.yaml) | основной эксперимент (WildGuardMix) |
+| [configs/rq3_contrastive.yaml](../configs/rq3_contrastive.yaml) | эксперимент на AEGIS |
+| [configs/ood_toxicchat.yaml](../configs/ood_toxicchat.yaml) | OOD-набор |
+
+На WildGuardMix включён **gradient checkpointing** (`gradient_checkpointing: true`): промты
+длинные, и батч из 96 текстов по 512 токенов без него не влезал в 20 ГБ памяти MPS. Активации
+пересчитываются при backward вместо хранения; математика обучения не меняется, время растёт
+примерно на 30%. Прогоны и результаты WildGuardMix пишутся отдельно — в
+`artifacts/runs_wildguardmix/`, `results/wildguardmix/` и эксперимент MLflow
+`eguard-rq3-wildguardmix`, — чтобы не перезаписать AEGIS.
 
 Лучший чекпоинт выбирается по **TPR@FPR=1%**, а не по лоссу: средний лосс не отражает
 рабочую точку с низким FPR. Чекпоинт сохраняется в формате `AutoModel`, поэтому его можно
@@ -325,24 +425,72 @@ TPR@FPR=1%, посчитанные на каждом наборе отдельн
 
 ```bash
 make ood-data      # ToxicChat -> data/processed/ (один раз)
-make rq3           # три objective подряд + LODO-оценка, ~50 минут на MPS
-make lodo          # только оценка уже обученных прогонов
+make rq3-wgm       # WildGuardMix: три objective подряд + LODO, ~2–2.5 ч на RTX 5070 Ti
+make lodo-wgm      # только оценка уже обученных прогонов WildGuardMix
+make rq3           # то же на AEGIS, ~50 минут на MPS
+make lodo          # только оценка прогонов AEGIS
 make mlflow        # UI трекинга на http://127.0.0.1:5000 (отдельный терминал)
 ```
 
-Поштучно:
+Поштучно (для AEGIS — тот же набор команд с `configs/rq3_contrastive.yaml`):
 
 ```bash
-python scripts/08_train_contrastive.py --config configs/rq3_contrastive.yaml --objective classification --run-name rq3-classification
-python scripts/08_train_contrastive.py --config configs/rq3_contrastive.yaml --objective contrastive    --run-name rq3-contrastive
-python scripts/08_train_contrastive.py --config configs/rq3_contrastive.yaml --objective joint          --run-name rq3-joint
-python scripts/09_eval_lodo.py --config configs/rq3_contrastive.yaml --ood-config configs/ood_toxicchat.yaml
+python scripts/08_train_contrastive.py --config configs/rq3_wildguardmix.yaml --objective classification --run-name wgm-classification
+python scripts/08_train_contrastive.py --config configs/rq3_wildguardmix.yaml --objective contrastive    --run-name wgm-contrastive
+python scripts/08_train_contrastive.py --config configs/rq3_wildguardmix.yaml --objective joint          --run-name wgm-joint
+python scripts/09_eval_lodo.py --config configs/rq3_wildguardmix.yaml --ood-config configs/ood_toxicchat.yaml
 ```
+
+Для настоящих прогонов не используйте `--limit-pairs`: он режет пары и тексты по-разному, и
+CE-ветка перестаёт видеть ровно те же тексты, что contrastive. Объём уменьшается через
+`--scale` при сборке пар или `epochs` в конфиге.
 
 Абляция RQ2 (вклад каждого типа пар при прочих равных): `make rq3-ablation` или
 `--pair-types safe_harm_contrast jailbreak_variant`.
 
-### Результаты (единый проб, порог с AEGIS val при FPR=1%)
+### Результаты: WildGuardMix (основной эксперимент)
+
+Единый проб, порог с val при FPR=1%. Hold-out: WildGuardTest, n=1699, harm_rate 0.444. OOD:
+ToxicChat, n=2853, harm_rate 0.127. В скобках — 95% bootstrap-интервалы.
+
+| вариант | набор | AUROC | TPR@FPR=1% | FPR | FNR |
+|:--|:--|--:|--:|--:|--:|
+| e5 frozen | holdout | 0.868 [0.852, 0.885] | 0.313 [0.253, 0.398] | 0.016 | 0.649 |
+| (а) CE | holdout | 0.928 [0.916, 0.940] | 0.363 [0.239, 0.531] | 0.024 | 0.395 |
+| (б) contrastive | holdout | 0.919 [0.906, 0.931] | 0.406 [0.241, 0.529] | 0.020 | 0.458 |
+| (в) CE+contrastive | holdout | 0.927 [0.915, 0.939] | 0.439 [0.276, 0.535] | 0.030 | 0.406 |
+| e5 frozen | **ood** | 0.883 [0.864, 0.899] | 0.160 [0.116, 0.235] | 0.042 | 0.550 |
+| (а) CE | **ood** | 0.917 [0.902, 0.929] | **0.069** [0.041, 0.113] | 0.054 | 0.417 |
+| (б) contrastive | **ood** | 0.913 [0.897, 0.927] | 0.238 [0.193, 0.321] | 0.037 | 0.481 |
+| (в) CE+contrastive | **ood** | 0.923 [0.907, 0.935] | 0.251 [0.163, 0.340] | 0.034 | 0.442 |
+
+### Выводы
+
+1. **CE теряет рабочую точку с низким FPR при переносе — воспроизведено на двух наборах.**
+   OOD TPR@FPR=1% у CE: 0.069 [0.041, 0.113] после WildGuardMix и 0.028 [0.011, 0.053] после
+   AEGIS. Варианты с contrastive-компонентой — 0.14–0.25, интервалы с CE не пересекаются. По
+   AUROC на OOD CE при этом почти не отстаёт (0.917 против 0.913 и 0.923): проблема не в общем
+   ранжировании, а в хвосте — у CE-модели небольшая группа безопасных промтов ToxicChat
+   получает очень высокие скоры и выставляет порог. AUROC этого не видит.
+2. **В своём домене objective не имеет значения.** На hold-out интервалы трёх вариантов
+   пересекаются на обоих наборах.
+3. **Данные важнее objective.** После AEGIS дообучение на OOD вредило (AUROC 0.815–0.850 против
+   0.872 у frozen), а FPR при перенесённом пороге вырастал до 21–36%. После WildGuardMix все три
+   варианта лучше frozen на OOD (0.913–0.923 против 0.883), а FPR на ToxicChat — 3–5%. Вклад
+   содержания и объёма данных здесь не разделить.
+4. **Рекомендуемый вариант — joint.** На WildGuardMix у него лучшие точечные оценки на OOD по
+   всем метрикам и самый низкий FPR при перенесённом пороге; на hold-out он не хуже CE.
+5. **Практическая рабочая точка.** Joint при пороге с val: FPR 3.0% и FNR 40.6% на WildGuardTest,
+   FPR 3.4% и FNR 44.2% на ToxicChat. Как единственный фильтр мало, как дешёвая первая ступень
+   перед дорогой проверкой — подходит.
+6. **Порог плывёт уже на своём тесте.** На val WildGuardMix порог давал FPR 1%, на WildGuardTest —
+   1.6–3.0%. Val взят из train с LLM-разметкой, тест размечен людьми.
+
+Главное ограничение: каждый прогон — один seed, bootstrap-интервалы учитывают только разброс
+тестовой выборки. Все выводы и ограничения подробно — в
+[results/rq3/REPORT.md](../results/rq3/REPORT.md).
+
+### Результаты: AEGIS (эксперимент 1)
 
 Hold-out: AEGIS test, n=308, harm_rate 0.597. OOD: ToxicChat, n=2853, harm_rate 0.127.
 
@@ -357,34 +505,14 @@ Hold-out: AEGIS test, n=308, harm_rate 0.597. OOD: ToxicChat, n=2853, harm_rate 
 | (б) contrastive | **ood** | 0.849 | 0.135 | 0.357 | 0.116 |
 | (в) CE+contrastive | **ood** | 0.850 | 0.152 | 0.211 | 0.240 |
 
-**На hold-out различий между тремя вариантами нет.** Это главная оговорка, и её нельзя
-опускать в отчёте: доверительные интервалы TPR@FPR=1% огромные (CE 0.239–0.745,
-contrastive 0.533–0.761, joint 0.489–0.772), потому что в hold-out всего 308 примеров и
-метрика при FPR=1% опирается на считанные точки в хвосте. Порядок «contrastive > joint > CE»
-держится по точечным оценкам, но статистически не отделим. Нужны несколько seed'ов на
-вариант или больший hold-out.
+На hold-out интервалы TPR@FPR=1% огромные (CE 0.239–0.745, contrastive 0.533–0.761, joint
+0.489–0.772): в тесте 308 примеров, и порог при FPR=1% держится на одном-двух безопасных
+примерах. На OOD CE переносится хуже всех, а порог, откалиброванный на AEGIS, на ToxicChat
+даёт FPR 21–36% у всех дообученных вариантов (у frozen — 6.3%).
 
-**На OOD различия значимые** (n=2853, интервалы узкие) и картина обратная: CE переносится
-хуже всех — TPR@FPR=1% падает до 0.028 [0.011, 0.053] против 0.191 [0.141, 0.251] у
-замороженного энкодера, интервалы не пересекаются. Дообучение на AEGIS улучшает in-domain и
-портит перенос; contrastive этот ущерб частично компенсирует.
-
-**Порог не переносится.** У всех дообученных вариантов FPR на ToxicChat взлетает до 21–36%
-при пороге, откалиброванном на AEGIS. Joint деградирует мягче (0.211). Часть эффекта —
-арифметика базовой ставки (harm_rate 0.597 → 0.127), но не вся: у замороженного энкодера при
-том же сдвиге FPR остаётся 0.063.
-
-### Важно про соответствие результатов и данных
-
-Числа в `results/rq3/` посчитаны на **предыдущей** версии пар (`aegis_harmbench_v1`, 80
-behaviors HarmBench). После этого набор пересобран в `aegis_harmbench_v2` с 400 behaviors,
-но переобучение не запускалось. `aegis_harmbench_v1` оставлен на диске, чтобы старые
-результаты были воспроизводимы; `configs/rq3_contrastive.yaml` уже указывает на `v2`.
-
-При переобучении на `v2` стоит учесть: `harm_rate` плоского набора текстов вырос с 0.465 до
-0.572 (HarmBench состоит только из вредоносных behaviors). На contrastive-ветку это почти не
-влияет, а CE-ветка получит заметно более несбалансированные данные — веса классов в CE сейчас
-не выставляются.
+Числа посчитаны на парах `aegis_harmbench_v1` (80 behaviors HarmBench). Позже набор пересобран
+в `aegis_harmbench_v2` с 400 behaviors, но на нём AEGIS не переобучался;
+`configs/rq3_contrastive.yaml` указывает уже на `v2`.
 
 ---
 
@@ -407,24 +535,28 @@ behaviors HarmBench). После этого набор пересобран в `
 
 ## RQ5 — расстояние до unsafe-кластеров как confidence score
 
-**Статус:** побочный, но содержательный результат из LODO-оценки.
+**Статус:** побочные измерения из LODO-оценки; первоначальная гипотеза не подтвердилась.
 
 Скор `s(x) = cos(x, μ̂_harm) − cos(x, μ̂_safe)` считается для всех моделей как отдельный
 readout (`centroid_distance` в [09_eval_lodo.py](../scripts/09_eval_lodo.py)).
 
-| пространство | OOD AUROC | OOD FPR при τ* |
+| модель | OOD AUROC, AEGIS | OOD AUROC, WildGuardMix |
 |:--|--:|--:|
-| e5 frozen | 0.668 | 0.003 |
-| после contrastive | **0.892** [0.876, 0.908] | **0.089** |
+| e5 frozen, центроиды | 0.668 | 0.789 |
+| contrastive, центроиды | **0.892** | 0.897 |
+| contrastive, единый проб | 0.849 | **0.913** |
+| CE, центроиды | 0.819 | 0.916 |
 
-На замороженном энкодере distance-based скор на OOD почти не работает. После
-contrastive-дообучения тот же самый скор даёт лучший OOD-результат среди всех
-комбинаций — выше, чем линейный проб на замороженной базе (0.872), и порог при этом
-переносится (0.089 против 0.357 у пробы на том же пространстве).
+На AEGIS скор по центроидам после contrastive-обучения дал лучший OOD-результат среди всех
+комбинаций, и это выглядело как подтверждение RQ5: contrastive перестраивает геометрию так,
+что начинает работать distance-based скоринг. На WildGuardMix это не воспроизвелось:
+у contrastive центроиды уступают единому пробу, а у CE центроиды работают не хуже проба.
+Сам результат contrastive + центроиды почти не изменился (0.892 → 0.897) — выросли остальные
+readout'ы, потому что обучение на WildGuardMix улучшило пространство в целом.
 
-То есть contrastive-обучение не столько улучшает классификацию, сколько перестраивает
-геометрию так, что начинает работать distance-based скоринг — ровно гипотеза RQ5.
-Вероятностная калибровка скора (чего, по литобзору, не делают) пока не проверялась.
+Корректная формулировка: после contrastive-обучения distance-скор даёт ~0.89 AUROC на OOD
+независимо от обучающего набора, но лучшим readout'ом не является. Вероятностная калибровка
+скора (сам вопрос RQ5) пока не проверялась.
 
 ---
 
@@ -436,8 +568,8 @@ contrastive-дообучения тот же самый скор даёт луч
 
 ## Инфраструктура и качество
 
-**Тесты:** 37 штук, запуск `make test`. Покрывают разметку AEGIS и ToxicChat, логику
-сборки пар и отсутствие утечки, лоссы и их градиенты, калибровку порога, обёртку MLflow.
+**Тесты:** 47 штук, запуск `make test`. Покрывают разметку AEGIS, ToxicChat и WildGuardMix,
+логику сборки пар и отсутствие утечки, лоссы и их градиенты, калибровку порога, обёртку MLflow.
 Сети и GPU не требуют (torch нужен только для `test_training.py`).
 
 **Офлайн-проверка пайплайна:** `make smoke` (RQ1 на синтетике и хеш-энкодере, без сети и
@@ -450,7 +582,8 @@ torch) и `make smoke-rq3` (маленькие пары + пара шагов о
 MLflow 3.x переведён в maintenance mode и падает без `MLFLOW_ALLOW_FILE_STORE=true`.
 Метрики пишутся по ходу обучения (`log_every: 20` шагов, `eval_every: 200`), поэтому
 прогресс виден в UI в реальном времени. Метрики LODO дозаписываются в тот же прогон, где
-училась модель. Отключается флагом `--no-mlflow`.
+училась модель. Отключается флагом `--no-mlflow`. Эксперименты: `eguard-rq3` (AEGIS) и
+`eguard-rq3-wildguardmix`. Лог обучения на WildGuardMix — `rq3_wgm.log` в корне репозитория.
 
 ---
 
@@ -465,9 +598,9 @@ MLflow 3.x переведён в maintenance mode и падает без `MLFLOW
 | `configs/` | YAML-конфигурации экспериментов |
 | `tests/` | pytest, без сети и GPU |
 | `docs/` | этот документ |
-| `results/` | версионируемые результаты: CSV и markdown-отчёты |
+| `results/` | версионируемые результаты: CSV и markdown-отчёты; `results/rq*/` — AEGIS и сводный отчёт RQ3, `results/wildguardmix/` — эксперимент на WildGuardMix |
 | `data/` | не версионируется: сырые и нормализованные данные, пары |
-| `artifacts/` | не версионируется: кеш эмбеддингов, чекпоинты прогонов |
+| `artifacts/` | не версионируется: кеш эмбеддингов, чекпоинты прогонов (`runs/` — AEGIS, `runs_wildguardmix/`) |
 | `mlruns/`, `mlartifacts/`, `mlflow.db` | не версионируется: хранилище MLflow |
 
 Раскладка данных на диске:
@@ -479,7 +612,8 @@ data/processed/{dataset}/summary.json               статистика спл�
 data/processed/pairs/{name}/pairs_{split}.jsonl     триплеты
 data/processed/pairs/{name}/texts_{split}.jsonl     те же тексты плоско, с меткой
 artifacts/embeddings/{dataset}/{encoder}/{split}.npy
-artifacts/runs/{run_name}/checkpoint/               дообученная модель
+artifacts/runs/{run_name}/checkpoint/               дообученная модель (AEGIS)
+artifacts/runs_wildguardmix/{run_name}/checkpoint/  дообученная модель (WildGuardMix)
 ```
 
 Порядок строк в `{split}.jsonl` — это порядок строк в кеше эмбеддингов; менять его нельзя
@@ -493,7 +627,9 @@ artifacts/runs/{run_name}/checkpoint/               дообученная мо�
 скриптами.
 - `EncoderSpec`, `DatasetSpec`, `Paths`, `Config` — дата-классы секций конфига.
   `DatasetSpec` несёт и общие поля (`text_types`, `min_chars`), и специфичные для
-  отдельных датасетов (`config`, `label_field`, `require_human_annotation` — для ToxicChat).
+  отдельных датасетов (`config`, `label_field`, `require_human_annotation` — для ToxicChat;
+  `adversarial_filter` — для WildGuardMix; `max_records_per_split` — стратифицированный
+  потолок записей на сплит для больших наборов).
 - `Config.encoder(key)` — спецификация энкодера по ключу, с понятной ошибкой при опечатке.
 - `Config.select_encoders(keys)` — подмножество энкодеров или все.
 - `load_config(path)` — YAML в `Config`.
@@ -516,7 +652,9 @@ artifacts/runs/{run_name}/checkpoint/               дообученная мо�
 ### data/ — датасеты
 
 **[data/\_\_init\_\_.py](../src/eguard/data/__init__.py)** — реестр загрузчиков.
-- `LOADERS = {"aegis": aegis, "toxicchat": toxicchat}`, `get_loader(name)`.
+- `LOADERS = {"aegis": aegis, "toxicchat": toxicchat, "wildguardmix": wildguardmix}`,
+  `get_loader(name)`. Все загрузчики с одинаковым интерфейсом (`load_raw`, `normalize_rows`,
+  `make_synthetic`), поэтому `00_prepare_data.py` работает с любым из них.
 - `split_path`, `load_split` — пути и чтение нормализованных сплитов.
 
 **[data/aegis.py](../src/eguard/data/aegis.py)** — AEGIS: три шага разметки. Используется
@@ -541,6 +679,21 @@ artifacts/runs/{run_name}/checkpoint/               дообученная мо�
 - `normalize_rows(rows, spec)` — берёт `user_input` (guardrail видит запрос, а не ответ
   модели — так сопоставимо с AEGIS/`user_message`), фильтрует по `human_annotation`.
 - `load_raw`, `make_synthetic` — как у AEGIS; синтетика повторяет дисбаланс оригинала.
+
+**[data/wildguardmix.py](../src/eguard/data/wildguardmix.py)** — WildGuardMix, основной
+обучающий набор.
+- `load_raw(spec)` — скачивает конфиги `wildguardtrain` и `wildguardtest`. Без доступа к
+  gated-репозиторию падает с подсказкой, как его получить; проверяет наличие нужных столбцов.
+- `normalize_rows(rows, spec)` — промт как текст, дедупликация по тексту промта (строки train —
+  пары «промт + ответ»), выброс промтов с противоречивыми метками и строк без метки, фильтр
+  `adversarial_filter`, опциональный стратифицированный срез.
+- `to_binary(label)` — `prompt_harm_label` в 1 / 0 / None.
+- `is_adversarial(value)` — флаг `adversarial`, понимает и bool, и строки.
+- `parse_agreement(value)` — согласие аннотаторов в [0, 1]. В wildguardtest хранится **число**
+  согласных из трёх (2.0 или 3.0), а не доля; в train согласия нет, там 1.0.
+- `category_of(row, label)` — `subcategory` для вредоносных, `safe` для безопасных.
+- `make_synthetic(n, seed)` — заглушки со всеми особыми случаями: повторы промтов, строки
+  без метки, оба класса в обоих вариантах (vanilla / adversarial).
 
 ### encoders/ — замороженные энкодеры
 
@@ -601,7 +754,9 @@ artifacts/runs/{run_name}/checkpoint/               дообученная мо�
   GitHub-репозитория HarmBench. На HF датасет gated, здесь токен не нужен.
 - `load_harmbench(...)` — behaviors в формат записей пайплайна; `include_context` по умолчанию
   выключен (guardrail видит запрос, а не приложенный документ).
-- `load_aegis_records(...)` — нормализованный AEGIS с диска с пометкой источника.
+- `load_processed_records(root, dataset, split)` — нормализованные записи любого датасета с
+  диска; источник по умолчанию — имя датасета. `load_aegis_records` — старое имя, оставлено
+  алиасом.
 
 **[pairs/transforms.py](../src/eguard/pairs/transforms.py)** — детерминированные при
 фиксированном seed трансформации; каждая помечает результат именем семейства, по этой метке
@@ -616,9 +771,16 @@ artifacts/runs/{run_name}/checkpoint/               дообученная мо�
 
 **[pairs/builders.py](../src/eguard/pairs/builders.py)**
 - `PairContext` — всё, из чего строятся пары для одного сплита; `pool(label)` отдаёт пул класса.
+  Поле с записями основного датасета исторически называется `aegis`, но в него попадает любой
+  датасет из `dataset.name`.
 - `make_pair(...)` — один триплет со всей метаинформацией для абляций и error analysis.
-- `build_safe_harm_contrast`, `build_paraphrase`, `build_jailbreak_variant`, `build_benign_twin`
-  — четыре строителя, реестр `BUILDERS`.
+- `build_safe_harm_contrast`, `build_paraphrase`, `build_jailbreak_variant`, `build_benign_twin`,
+  `build_adversarial_contrast` — пять строителей, реестр `BUILDERS`.
+- `jailbreak_seeds(ctx)` — затравки для шаблонных jailbreak-обёрток по режиму
+  `harmbench` / `dataset` / `both`; из датасета берутся только не-adversarial промты.
+- `build_benign_twin` майнит блоками по 512 якорей: на WildGuardMix две плотные матрицы
+  косинусов заняли бы около 1 ГБ. Точность float64 сохранена — во float32 почти равные
+  косинусы меняют порядок соседей.
 - `deduplicate(pairs)` — убирает повторы и вырожденные пары (`anchor == positive`).
 - `flatten_texts(pairs)` — все тексты из пар с бинарной меткой, без повторов; обучающее
   множество classification-ветки RQ3.
@@ -653,7 +815,8 @@ artifacts/runs/{run_name}/checkpoint/               дообученная мо�
 - `texts_and_labels(records)` — `(list[str], np.ndarray)`.
 
 **[training/loop.py](../src/eguard/training/loop.py)**
-- `TrainConfig` — все гиперпараметры одним дата-классом.
+- `TrainConfig` — все гиперпараметры одним дата-классом, включая `gradient_checkpointing`
+  (включается в `08_train_contrastive.py` через `backbone.gradient_checkpointing_enable()`).
 - `build_optimizer(...)` — AdamW с раздельным weight decay плюс warmup и косинусное затухание.
 - `contrastive_step(...)` — эмбеддит якорь, позитив, негатив; считает выбранный лосс и
   диагностику (`cos_anchor_positive`, `cos_anchor_negative`, `cos_margin`).
@@ -690,14 +853,14 @@ artifacts/runs/{run_name}/checkpoint/               дообученная мо�
 
 | Скрипт | Что делает | Ключевые функции |
 |:--|:--|:--|
-| [00_prepare_data.py](../scripts/00_prepare_data.py) | датасет с HF Hub в нормализованные сплиты; `--synthetic N` для офлайна | `stratified_split` (отрезает val от train со стратификацией, официальный test не трогает), `summarize` |
+| [00_prepare_data.py](../scripts/00_prepare_data.py) | датасет с HF Hub в нормализованные сплиты; `--synthetic N` для офлайна | `stratified_split` (отрезает val от train со стратификацией, официальный test не трогает), `summarize` (для WildGuardMix добавляет долю adversarial по классам) |
 | [01_embed.py](../scripts/01_embed.py) | frozen-энкодеры в кеш эмбеддингов; `--encoders dummy` для офлайна | — |
 | [02_rq1_similarity.py](../scripts/02_rq1_similarity.py) | косинусы и геометрия, гистограммы | — |
 | [03_rq1_probe.py](../scripts/03_rq1_probe.py) | logreg / kNN / centroid пробы + контроли, сохраняет скоры теста | — |
 | [04_rq1_viz.py](../scripts/04_rq1_viz.py) | PCA / t-SNE / UMAP проекции | — |
 | [05_report.py](../scripts/05_report.py) | собирает CSV и картинки в `REPORT.md` | `md_table` |
 | [06_error_analysis.py](../scripts/06_error_analysis.py) | hard-пары и ошибки проба в рабочей точке | `hard_pairs` (пары safe/harm с максимальным косинусом — сырьё для hard negatives в RQ2), `probe_errors`, `snippet` |
-| [07_build_pairs.py](../scripts/07_build_pairs.py) | сборка обучающих пар | `load_mining` (эмбеддинги для benign twins, урезанные тем же фильтром, что и пулы) |
+| [07_build_pairs.py](../scripts/07_build_pairs.py) | сборка обучающих пар; сид сплита через `zlib.crc32`, behaviors HarmBench, совпадающие с val/test, убираются | `load_mining` (эмбеддинги для benign twins, урезанные тем же фильтром, что и пулы) |
 | [08_train_contrastive.py](../scripts/08_train_contrastive.py) | дообучение с трекингом | `build_train_config` (склейка конфига с CLI-переопределениями) |
 | [09_eval_lodo.py](../scripts/09_eval_lodo.py) | сравнение hold-out против OOD | `discover_runs`, `embed_all`, `centroid_scores`, `rows_for_readout` |
 | [run_rq1.sh](../scripts/run_rq1.sh) | весь RQ1 одной командой | — |
@@ -710,8 +873,10 @@ artifacts/runs/{run_name}/checkpoint/               дообученная мо�
 | Файл | Для чего |
 |:--|:--|
 | [rq1.yaml](../configs/rq1.yaml) | RQ1: три энкодера, AEGIS с `caution_policy: exclude`, параметры анализа и визуализации |
-| [rq2_pairs.yaml](../configs/rq2_pairs.yaml) | RQ2: источники, параметры трансформаций, зафиксированные размеры пар |
-| [rq3_contrastive.yaml](../configs/rq3_contrastive.yaml) | RQ3: objective, лосс, гиперпараметры, MLflow |
+| [rq2_pairs.yaml](../configs/rq2_pairs.yaml) | RQ2 на AEGIS: источники, параметры трансформаций, зафиксированные размеры пар |
+| [rq2_pairs_wildguardmix.yaml](../configs/rq2_pairs_wildguardmix.yaml) | RQ2 на WildGuardMix: датасет, энкодер для майнинга, параметры и размеры пар |
+| [rq3_contrastive.yaml](../configs/rq3_contrastive.yaml) | RQ3 на AEGIS: objective, лосс, гиперпараметры, MLflow |
+| [rq3_wildguardmix.yaml](../configs/rq3_wildguardmix.yaml) | RQ3 на WildGuardMix: то же + gradient checkpointing, отдельные папки результатов и эксперимент MLflow |
 | [ood_toxicchat.yaml](../configs/ood_toxicchat.yaml) | OOD-набор; `val_fraction: 0` — на ToxicChat ничего не подбирается |
 
 ## tests
@@ -722,6 +887,7 @@ artifacts/runs/{run_name}/checkpoint/               дообученная мо�
 | [test_pairs.py](../tests/test_pairs.py) | согласованность меток в парах, парафразы и внешние варианты, обёрнутые safe-негативы в jailbreak, майнинг ближайшего safe, дедупликация, `flatten_texts` |
 | [test_training.py](../tests/test_training.py) | лоссы и конечность градиентов, регресс на NaN в SupCon, KL против самого себя, `flatten_params`, no-op трекер, регресс на `StopIteration` в joint |
 | [test_toxicchat.py](../tests/test_toxicchat.py) | метки и фильтры ToxicChat, обучение transfer-проба только на train, перенос порога с val на сдвинутый набор |
+| [test_wildguardmix.py](../tests/test_wildguardmix.py) | метки, дедупликация промтов и конфликты, фильтр adversarial, разбор согласия, стратифицированный срез, структура `adversarial_contrast`, режимы `jailbreak_seeds` |
 
 ## Makefile
 
@@ -731,9 +897,12 @@ data           AEGIS -> data/processed/
 ood-data       ToxicChat -> data/processed/
 embed          frozen-эмбеддинги
 rq1            весь RQ1
-pairs          обучающие пары
-rq3            три objective подряд + LODO
-lodo           только оценка обученных прогонов
+pairs          обучающие пары (AEGIS)
+wgm-pairs      WildGuardMix: данные -> эмбеддинги для майнинга -> пары
+rq3            три objective подряд + LODO (AEGIS)
+lodo           только оценка обученных прогонов (AEGIS)
+rq3-wgm        три objective подряд + LODO (WildGuardMix)
+lodo-wgm       только оценка обученных прогонов (WildGuardMix)
 rq3-ablation   абляция по типам пар
 mlflow         UI трекинга
 test           pytest
@@ -748,13 +917,19 @@ clean          удалить данные, артефакты, результа
 
 По убыванию пользы для отчёта:
 
-1. **Несколько seed'ов на вариант в RQ3.** Без этого сравнение на hold-out остаётся
-   статистически неразличимым, а это ядро проекта.
-2. **Переобучение на `aegis_harmbench_v2`** (400 behaviors вместо 80) и пересчёт LODO;
-   при этом стоит добавить веса классов в CE из-за сдвига баланса.
-3. **Строка с перекалибровкой порога** на небольшой размеченной выборке ToxicChat —
+1. **3–5 seed'ов на вариант в RQ3 на WildGuardMix** — главное подтверждение вывода про
+   потерю хвоста у CE. На RTX 5070 Ti это ~2 часа на seed.
+2. **Разбор хвоста:** сохранять скоры в `09_eval_lodo.py` и посмотреть, какие безопасные
+   промты ToxicChat CE-модель ставит выше всего.
+3. **Абляция типов пар на WildGuardMix** (`make rq3-ablation RQ3_CONFIG=configs/rq3_wildguardmix.yaml`)
+   — что именно даёт устойчивость хвоста. Это и есть ответ на RQ2.
+4. **Выравнивание по шагам:** CE с тем же числом шагов, что у contrastive (сейчас 3060 против
+   2032), чтобы исключить объяснение «CE просто дольше учился».
+5. **Строка с перекалибровкой порога** на небольшой размеченной выборке ToxicChat —
    отделит деградацию ранжирования от сдвига базовой ставки.
-4. **RQ4:** прогоны с `kl_weight > 0` и замер геометрии дообученного пространства.
-5. **Дедупликация AEGIS** в `00_prepare_data.py` и пересчёт RQ1.
-6. **RQ2:** семантические парафразы через `external_variants`; тип пар `code_safe_harm`.
-7. **RQ5:** проверка вероятностной калибровки distance-скора.
+6. **RQ4:** прогоны с `kl_weight > 0` и замер геометрии дообученного пространства.
+7. **Повтор RQ3 на ettin / mmBERT:** предобучение e5 было контрастивным, выводы могут
+   не переноситься на MLM-энкодеры.
+8. **Дедупликация AEGIS** в `00_prepare_data.py` и пересчёт RQ1.
+9. **RQ2:** семантические парафразы через `external_variants`; тип пар `code_safe_harm`.
+10. **RQ5:** проверка вероятностной калибровки distance-скора.
