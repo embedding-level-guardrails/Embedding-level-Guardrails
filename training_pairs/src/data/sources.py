@@ -87,13 +87,13 @@ def load_jailbreak_templates(cache_dir: Path = RAW_DIR) -> list[str]:
 def load_wildguardmix(cache_dir: Path = RAW_DIR) -> pd.DataFrame:
     """Load WildGuardMix (wildguardtrain split), normalized to AEGIS's schema.
 
-    UNVERIFIED: allenai/wildguardmix is gated on HuggingFace (requires accepting
-    the license and an approved HF_TOKEN). This sandbox has no such token, so
-    the column mapping below (based on the public WildGuard paper description —
-    `prompt`, `prompt_harm_label` in {"yes","no"}, `subcategory`) could not be
-    tested against real data. Whoever runs this with real HF access should
-    verify the mapping and fix it if the actual columns differ before relying
-    on the output.
+    Column names below match the dataset card (2026-09-30), which documents both
+    splits as `prompt`, `adversarial`, `response`, `prompt_harm_label`,
+    `response_harm_label`, `response_refusal_label`, `subcategory` — the test split
+    adding three `*_agreement` columns. They have NOT been checked against the real
+    parquet: allenai/wildguardmix is gated (accept the license, set HF_TOKEN), and
+    the label *values* ("yes"/"no" vs "harmful"/"unharmful") are still a guess,
+    which `_to_binary_label` handles by accepting both.
 
     Raises RuntimeError with setup instructions if HF_TOKEN is not set.
     """

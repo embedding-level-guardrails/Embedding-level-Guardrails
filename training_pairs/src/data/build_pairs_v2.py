@@ -14,8 +14,9 @@ What changed compared to v1 (`build_pairs.py`, left untouched):
   *same* templates, so wrapped harm and wrapped safe differ only by content.
 * Prompts are filtered before any pair is built: empty / `REDACTED`, prompts
   with contradictory labels, duplicates, prompts that also occur in AEGIS
-  validation or test, prompts that already look like jailbreaks, too short or
-  too long prompts.
+  validation or test, persona jailbreaks (their AEGIS label comes from the framing,
+  not the request), too short or too long prompts. Prompt-injection templates stay
+  in the pool and are excluded only from wrapping.
 * Harm categories: `primary_category` is the first violated category after
   dropping the vague `Needs Caution` (AEGIS orders categories by annotation
   frequency); categories with fewer than `--min-category-prompts` prompts are
@@ -82,6 +83,23 @@ JAILBREAK_PATTERN = (
 )
 _JAILBREAK_RE = re.compile(JAILBREAK_PATTERN, flags=re.IGNORECASE)
 
+# Внутри jailbreak-подобных промптов живут два несовместимых семейства, и метка у них
+# определяется по-разному: у персонажных джейлбрейков — самим фреймингом (в AEGIS test 18 harm
+# против 1 safe), у промпт-инжекторных шаблонов — темой запроса (22 safe против 6 harm, метка
+# идёт от Unauthorized Advice / PII). Усреднять метрику по ним вместе бессмысленно, поэтому
+# правило разделения хранится здесь и уезжает в manifest вместе с самим паттерном.
+PERSONA_JAILBREAK_PATTERN = (
+    r"(?-i:\bDAN\b)|do anything now|jailbr[eo]a?k|amoral|unfiltered|uncensored"
+    r"|developer mode|dev mode|god mode"
+    r"|no (?:ethical|moral) (?:guidelines|restrictions)"
+    r"|without (?:any )?(?:filters|restrictions|limitations)"
+    r"|act (?:as|like) (?:an? )?(?:\w+ )?(?:AI|Al|model|persona|character)"
+)
+_PERSONA_JAILBREAK_RE = re.compile(PERSONA_JAILBREAK_PATTERN, flags=re.IGNORECASE)
+
+PERSONA_JAILBREAK = "persona_jailbreak"
+PROMPT_INJECTION_TEMPLATE = "prompt_injection_template"
+
 
 def load_aegis_split(split: str, cache_dir: Path = RAW_DIR) -> pd.DataFrame:
     """AEGIS 2.0 split (train / validation / test): id, prompt, prompt_label, violated_categories."""
@@ -92,6 +110,18 @@ def load_aegis_split(split: str, cache_dir: Path = RAW_DIR) -> pd.DataFrame:
 
 def is_jailbreak_like(text: str) -> bool:
     return _JAILBREAK_RE.search(text) is not None
+
+
+def jailbreak_family(text: str) -> str | None:
+    """Семейство jailbreak-подобного промпта, иначе None.
+
+    Строгое разбиение множества `is_jailbreak_like`: состав среза не меняется, он только делится
+    надвое. Персона имеет приоритет — персонажный джейлбрейк часто содержит и
+    "ignore all previous instructions", но метку в нём определяет персона, а не идиома.
+    """
+    if not _JAILBREAK_RE.search(text):
+        return None
+    return PERSONA_JAILBREAK if _PERSONA_JAILBREAK_RE.search(text) else PROMPT_INJECTION_TEMPLATE
 
 
 def wrap_with_template(template: str, request: str) -> str:
@@ -119,6 +149,7 @@ def prepare_prompt_pool(
     min_chars: int = MIN_PROMPT_CHARS,
     max_chars: int = MAX_PROMPT_CHARS,
     protected_categories: frozenset[str] = PROTECTED_CATEGORIES,
+    drop_persona_jailbreaks: bool = True,
 ) -> tuple[pd.DataFrame, dict]:
     """Filtered AEGIS prompts with binary labels and merged primary categories.
 
@@ -139,9 +170,24 @@ def prepare_prompt_pool(
     drop(df.groupby("prompt")["prompt_label"].transform("nunique") > 1, "inconsistent_label")
     drop(df.duplicated("prompt", keep="first"), "duplicate")
     drop(df["prompt"].isin(exclude_prompts), "in_validation_or_test")
-    drop(df["prompt"].map(is_jailbreak_like), "jailbreak_like")
     lengths = df["prompt"].str.len()
     drop((lengths < min_chars) | (lengths > max_chars), "length")
+
+    if drop_persona_jailbreaks:
+        # Вредность промпта определяется содержанием запроса, а не обвязкой. У персонажных
+        # джейлбрейков AEGIS размечает вред по самому фреймингу — конвенция, которой модель здесь
+        # не учится: benign_twin прямо утверждает, что обвязка label-нейтральна. Держать их в
+        # обучении значит учить конвенции, которую мы же исключили из оценки.
+        drop(df["prompt"].map(lambda text: jailbreak_family(text) == PERSONA_JAILBREAK), "persona_jailbreak")
+
+    # Промпт-инжекторные шаблоны остаются: у них метка идёт от темы запроса, как и везде.
+    # Из обёртывания их исключает build_wrapped_pairs, чтобы не оборачивать джейлбрейк в джейлбрейк.
+    # Считается после фильтров — иначе счётчик включал бы промпты, которых в пуле уже нет.
+    jailbreak_like = df["prompt"].map(is_jailbreak_like)
+    stats["jailbreak_like_in_pool"] = int(jailbreak_like.sum())
+    stats["jailbreak_like_by_family"] = (
+        df.loc[jailbreak_like, "prompt"].map(jailbreak_family).value_counts().to_dict()
+    )
 
     df = df.reset_index(drop=True)
     is_harm = (df["prompt_label"] == "unsafe").to_numpy()
@@ -313,7 +359,7 @@ def build_wrapped_pairs(
     pool: pd.DataFrame,
     templates: list[str],
     n: int,
-    templates_per_prompt: int = 5,
+    templates_per_prompt: int = 2,
     seed: int = 42,
     max_prompt_chars: int = MAX_WRAPPED_PROMPT_CHARS,
 ) -> tuple[list[dict], list[dict]]:
@@ -323,7 +369,8 @@ def build_wrapped_pairs(
     wrapped in the same randomly chosen templates, so pair i of both lists shares a template.
     """
     rng = np.random.default_rng(seed)
-    eligible = pool[pool["chars"] <= max_prompt_chars]
+    # джейлбрейк не оборачивается в другой джейлбрейк — единственное место, где нужен этот фильтр
+    eligible = pool[(pool["chars"] <= max_prompt_chars) & ~pool["prompt"].map(is_jailbreak_like)]
     harm = sample_by_category(eligible[eligible["label"] == HARM], math.ceil(n / templates_per_prompt), rng)
     safe = eligible[eligible["label"] == SAFE]
     safe = safe.iloc[rng.permutation(len(safe))].reset_index(drop=True)
@@ -489,18 +536,27 @@ def main() -> None:
     parser.add_argument("--n-safe-harm", type=int, default=500)
     parser.add_argument("--n-paraphrase", type=int, default=500)
     parser.add_argument("--n-wrapped", type=int, default=500, help="pairs of each of jailbreak_variant and benign_twin")
-    parser.add_argument("--templates-per-prompt", type=int, default=5)
+    parser.add_argument("--templates-per-prompt", type=int, default=2,
+                        help="меньше шаблонов на промпт — больше разных промптов при том же числе пар")
     parser.add_argument("--code-templates-per-text", type=int, default=3)
     parser.add_argument("--min-category-prompts", type=int, default=100)
     parser.add_argument("--max-wrapped-prompt-chars", type=int, default=MAX_WRAPPED_PROMPT_CHARS)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--skip-code", action="store_true", help="skip the separate code-domain pair set")
+    parser.add_argument("--keep-persona-jailbreaks", action="store_true",
+                        help="оставить в пуле персонажные джейлбрейки (нужно, только если метка "
+                             "гардрейла должна определяться фреймингом, а не содержанием)")
     args = parser.parse_args()
 
     train = load_aegis_split("train")
     held_out = pd.concat([load_aegis_split("validation")["prompt"], load_aegis_split("test")["prompt"]])
     exclude = frozenset(held_out.dropna().astype(str).str.strip())
-    pool, pool_info = prepare_prompt_pool(train, exclude, args.min_category_prompts)
+    # без code-набора Malware остаётся крошечной (в AEGIS test её 3 промпта — ниже любого порога
+    # оценки), поэтому защита от слияния в Other имеет смысл только вместе с ним
+    protected = PROTECTED_CATEGORIES if not args.skip_code else frozenset()
+    pool, pool_info = prepare_prompt_pool(train, exclude, args.min_category_prompts,
+                                          protected_categories=protected,
+                                          drop_persona_jailbreaks=not args.keep_persona_jailbreaks)
     templates = load_jailbreak_templates()
 
     pairs = build_safe_harm_pairs(pool, args.n_safe_harm, seed=args.seed)
@@ -525,6 +581,7 @@ def main() -> None:
             "dropped_category": NEEDS_CAUTION,
             "other_category": OTHER_CATEGORY,
             "jailbreak_pattern": JAILBREAK_PATTERN,
+            "persona_jailbreak_pattern": PERSONA_JAILBREAK_PATTERN,
             **template_info,
         },
     )

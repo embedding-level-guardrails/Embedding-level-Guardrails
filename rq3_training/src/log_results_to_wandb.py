@@ -34,6 +34,8 @@ SUMMARY_TABLES = (
     "category_fnr.csv",
     "category_diagnostics.csv",
     "scorer_params.csv",
+    "wildguard_style_gap.csv",
+    "wildguard_style_gap_diff.csv",
 )
 
 
@@ -106,11 +108,16 @@ def log_sweep_runs(wandb, results_dir: Path, project: str, entity: str | None) -
 
     for _, row in sweep.iterrows():
         run = wandb.init(
-            project=project, entity=entity, name=f"sweep · {row['variant']} · {row['config']}",
+            project=project, entity=entity, name=f"sweep · {row.get('stage', row['variant'])} · {row['variant']} · {row['config']}",
             group=row["variant"], job_type="sweep", reinit=True, tags=["sweep"],
             config={"variant": row["variant"], "config": row["config"]},
         )
-        run.summary["val AUROC (probe)"] = float(row["val AUROC (probe)"])
+        # колонка переименована вместе с переходом отбора на pAUC; старые CSV тоже читаются
+        score_column = next((name for name in ("val pAUC (probe)", "val AUROC (probe)") if name in row.index), None)
+        if score_column is not None:
+            run.summary[score_column] = float(row[score_column])
+        if "stage" in row.index:
+            run.summary["stage"] = str(row["stage"])
         run.summary["collapsed"] = bool(row["collapsed"])
         run.finish()
     return len(sweep)
