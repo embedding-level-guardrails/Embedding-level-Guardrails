@@ -7,6 +7,27 @@ from transformers import PreTrainedTokenizerBase
 from ettin_guardrails.model import BaseClassifier
 from ettin_guardrails.runtime import configure_precision
 
+@torch.inference_mode()
+def compute_embeddings(model, tokenizer, prompts, device, batch_size=32, max_length=2048):
+    model.to(device).eval()
+    prompts = list(prompts)
+    batches = []
+    for start in range(0, len(prompts), batch_size):
+        inputs = tokenizer(
+            prompts[start:start + batch_size],
+            padding=True,
+            truncation=True,
+            max_length=max_length,
+            return_token_type_ids=False,
+            return_tensors="pt",
+        )
+        embeddings = model(
+            input_ids=inputs["input_ids"].to(device),
+            attention_mask=inputs["attention_mask"].to(device),
+        )
+        batches.append(embeddings.cpu())
+    return torch.cat(batches)
+
 
 def predict(
         classifier: BaseClassifier,

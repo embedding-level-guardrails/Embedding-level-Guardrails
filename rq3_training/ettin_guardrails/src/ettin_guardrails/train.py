@@ -154,7 +154,7 @@ def _initialize_model(model_type: str, context: TrainingContext) -> ModelTrainin
 
 def _backward_step(loss: torch.Tensor, context: TrainingContext, state: ModelTrainingState) -> None:
     state.scaler.scale(loss).backward()
-    if context.cfg.training.max_grad_norm is not None:
+    if "max_grad_norm" in context.cfg.training:
         state.scaler.unscale_(state.optimizer)
         torch.nn.utils.clip_grad_norm_(state.model.parameters(), context.cfg.training.max_grad_norm)
     state.scaler.step(state.optimizer)
