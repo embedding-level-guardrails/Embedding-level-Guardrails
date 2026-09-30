@@ -30,10 +30,10 @@ class Embedder(nn.Module):
             projection_hidden_dim: int | None = None,
             projection_output_dim: int | None = None,
             model_name: str = BACKBONE,
-            _load_local: bool = False,
+            _load_pretrained: bool = False,
     ):
         super().__init__()
-        if _load_local:
+        if _load_pretrained:
             config = AutoConfig.from_pretrained(model_name)
             self.encoder = AutoModel.from_config(config)
         else:
@@ -57,7 +57,7 @@ class Embedder(nn.Module):
 
         models_config = checkpoint["config"]["models"]
         embedder_config = dict(models_config.get("embedder", {}))
-        model = cls(**embedder_config, _load_local=True)
+        model = cls(**embedder_config, _load_pretrained=True)
         model.load_state_dict(checkpoint["model"])
         return model
 
@@ -116,18 +116,18 @@ class Classifier(BaseClassifier):
             projection_output_dim: int | None = None,
             backbone_name: str | None = None,
             model_name: str = BACKBONE,
-            _load_local: bool = False
+            _load_pretrained: bool = False
     ):
         super().__init__()
-        if backbone_name is not None:
-            self.embedder, _, _ = Embedder.load(backbone_name)
-        else:
+        if backbone_name is None or _load_pretrained:
             self.embedder = Embedder(
                 projection_hidden_dim=projection_hidden_dim,
                 projection_output_dim=projection_output_dim,
                 model_name=model_name,
-                _load_local=_load_local
+                _load_pretrained=_load_pretrained
             )
+        else:
+            self.embedder, _, _ = Embedder.load(backbone_name)
         if head_hidden_dim is None:
             self.mlp = nn.Linear(self.embedder.embedding_dim, 2)
         else:
@@ -144,7 +144,7 @@ class Classifier(BaseClassifier):
             raise ValueError(f"Expected a classifier checkpoint, got {model_type}")
         models_config = checkpoint["config"]["models"]
         classifier_config = dict(models_config.get("classifier", {}))
-        model = cls(**classifier_config, _load_local=True)
+        model = cls(**classifier_config, _load_pretrained=True)
         model.load_state_dict(checkpoint["model"])
         return model
 
@@ -158,10 +158,10 @@ class LinearProbe(BaseClassifier):
     def __init__(
             self,
             model_name: str = BACKBONE,
-            _load_local: bool = False,
+            _load_pretrained: bool = False,
     ):
         super().__init__()
-        if _load_local:
+        if _load_pretrained:
             config = AutoConfig.from_pretrained(BACKBONE)
             self.backbone = AutoModel.from_config(config)
         else:
@@ -196,6 +196,6 @@ class LinearProbe(BaseClassifier):
         if model_type != "linear-probe":
             raise ValueError(f"Expected a linear-probe checkpoint, got {model_type}")
 
-        model = cls(_load_local=True)
+        model = cls(_load_pretrained=True)
         model.load_state_dict(checkpoint["model"])
         return model
