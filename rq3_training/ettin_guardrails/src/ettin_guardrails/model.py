@@ -37,11 +37,23 @@ class Embedder(nn.Module):
         super().__init__()
         self.pooling_layer = pooling_layer
         self.pooling_strategy = pooling_strategy
+        encoder_kwargs = {}
+        if pooling_strategy == "main_token":
+            # SDPA / Flash Attention do not return attention weights.
+            encoder_kwargs["attn_implementation"] = "eager"
         if _load_pretrained:
             config = AutoConfig.from_pretrained(model_name)
-            self.encoder = AutoModel.from_config(config)
+            self.encoder = AutoModel.from_config(config, **encoder_kwargs)
         else:
-            self.encoder = AutoModel.from_pretrained(model_name)
+            self.encoder = AutoModel.from_pretrained(model_name, **encoder_kwargs)
+        if pooling_strategy == "main_token":
+            num_layers = self.encoder.config.num_hidden_layers
+            if pooling_layer == 0 or not -num_layers <= pooling_layer <= num_layers:
+                raise ValueError(
+                    "main_token requires pooling_layer in "
+                    f"[-{num_layers}, -1] or [1, {num_layers}]; "
+                    "layer 0 is the input embedding and has no attention."
+                )
         self.projection_head = None
         if projection_hidden_dim is not None and projection_output_dim is not None:
             self.projection_head = ProjectionHead(
@@ -77,7 +89,28 @@ class Embedder(nn.Module):
         return embedder, tokenizer, config
 
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor):
-        if self.pooling_layer == -1:
+        attention = None
+        if self.pooling_strategy == "main_token":
+            output = self.encoder(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                output_attentions=True,
+                output_hidden_states=self.pooling_layer != -1,
+                return_dict=True,
+            )
+            hidden_state = (
+                output.last_hidden_state if self.pooling_layer == -1
+                else output.hidden_states[self.pooling_layer]
+            )
+            # hidden_states[0] is the input embedding; attentions[0] is layer 1.
+            attention_index = (
+                self.pooling_layer - 1 if self.pooling_layer > 0
+                else self.pooling_layer
+            )
+            if output.attentions is None or output.attentions[attention_index] is None:
+                raise RuntimeError("main_token pooling requires encoder attention weights.")
+            attention = output.attentions[attention_index]
+        elif self.pooling_layer == -1:
             output = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
             hidden_state = output.last_hidden_state
         else:
@@ -87,13 +120,28 @@ class Embedder(nn.Module):
                 output_hidden_states=True,
             )
             hidden_state = output.hidden_states[self.pooling_layer]
-        output = self._pool(hidden_state, attention_mask)
+        output = self._pool(hidden_state, attention_mask, attention)
         if self.projection_head is not None:
             output = self.projection_head(output)
         return output
 
-    def _pool(self, batch: torch.Tensor, attention_mask: torch.Tensor):
+    def _pool(
+            self, batch: torch.Tensor, attention_mask: torch.Tensor,
+            attention: torch.Tensor | None = None,
+    ):
         mask = attention_mask.unsqueeze(-1).to(batch.dtype)
+        if self.pooling_strategy == "main_token":
+            if attention is None:
+                raise ValueError("main_token pooling requires attention weights.")
+            valid = attention_mask.bool()
+            # Attention axes: batch, head, querying token, receiving token.
+            incoming = (
+                attention.float().mean(dim=1) * valid.unsqueeze(-1)
+            ).sum(dim=1)
+            incoming = incoming.masked_fill(~valid, float("-inf"))
+            indices = incoming.argmax(dim=-1)
+            selected = batch[torch.arange(batch.size(0), device=batch.device), indices]
+            return selected * valid.any(dim=1, keepdim=True).to(batch.dtype)
         if self.pooling_strategy == "first":
             return (mask * batch)[:, 0, :]
         if self.pooling_strategy == "random":
