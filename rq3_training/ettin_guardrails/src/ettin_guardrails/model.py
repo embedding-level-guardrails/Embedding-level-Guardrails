@@ -32,9 +32,11 @@ class Embedder(nn.Module):
             model_name: str = BACKBONE,
             _load_pretrained: bool = False,
             pooling_layer: int = -1,
+            pooling_strategy: str = "mean",
     ):
         super().__init__()
         self.pooling_layer = pooling_layer
+        self.pooling_strategy = pooling_strategy
         if _load_pretrained:
             config = AutoConfig.from_pretrained(model_name)
             self.encoder = AutoModel.from_config(config)
@@ -85,14 +87,21 @@ class Embedder(nn.Module):
                 output_hidden_states=True,
             )
             hidden_state = output.hidden_states[self.pooling_layer]
-        output = self._mean_pooling(hidden_state, attention_mask)
+        output = self._pool(hidden_state, attention_mask)
         if self.projection_head is not None:
             output = self.projection_head(output)
         return output
 
-    def _mean_pooling(self, batch: torch.Tensor, attention_mask: torch.Tensor):
+    def _pool(self, batch: torch.Tensor, attention_mask: torch.Tensor):
         mask = attention_mask.unsqueeze(-1).to(batch.dtype)
+        if self.pooling_strategy == "first":
+            return (mask * batch)[:, 0, :]
+        if self.pooling_strategy == "random":
+            indices = torch.multinomial(attention_mask.float(), num_samples=1).squeeze(1)
+            return batch[torch.arange(batch.size(0), device=batch.device), indices]
+
         return (mask * batch).sum(dim=1) / mask.sum(dim=1).clamp_min(1)
+
 
 
 class BaseClassifier(nn.Module, ABC):
