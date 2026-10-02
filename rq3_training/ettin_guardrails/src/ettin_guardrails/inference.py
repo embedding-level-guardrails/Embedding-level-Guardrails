@@ -8,25 +8,60 @@ from ettin_guardrails.model import BaseClassifier
 from ettin_guardrails.runtime import configure_precision
 
 @torch.inference_mode()
-def compute_embeddings(model, tokenizer, prompts, device, batch_size=32, max_length=2048):
-    model.to(device).eval()
+def compute_embeddings(
+        model, tokenizer, prompts, device, batch_size=32, max_length=2048,
+        amp_dtype: torch.dtype | None = None,
+):
+    if isinstance(batch_size, bool) or not isinstance(batch_size, int) or batch_size < 1:
+        raise ValueError("batch_size must be a positive integer")
     prompts = list(prompts)
+    if not prompts:
+        raise ValueError("prompts must contain data")
+    device = torch.device(device)
+    if amp_dtype is None:
+        amp_dtype = torch.float32
+        if device.type == "cuda":
+            with torch.cuda.device(device):
+                amp_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+    model.to(device).eval()
     batches = []
-    for start in range(0, len(prompts), batch_size):
-        inputs = tokenizer(
-            prompts[start:start + batch_size],
-            padding=True,
-            truncation=True,
-            max_length=max_length,
-            return_token_type_ids=False,
-            return_tensors="pt",
-        )
+    start = 0
+    while start < len(prompts):
+        current_size = min(batch_size, len(prompts) - start)
+        try:
+            embeddings = _embedding_batch(
+                model, tokenizer, prompts[start:start + current_size],
+                device, max_length, amp_dtype,
+            )
+        except torch.cuda.OutOfMemoryError:
+            if device.type != "cuda" or current_size == 1:
+                raise
+            batch_size = max(1, current_size // 2)
+        else:
+            batches.append(embeddings)
+            start += current_size
+            continue
+        # Release failed-batch tensors after leaving the exception handler.
+        with torch.cuda.device(device):
+            torch.cuda.empty_cache()
+    return torch.cat(batches)
+
+
+def _embedding_batch(model, tokenizer, prompts, device, max_length, amp_dtype):
+    inputs = tokenizer(
+        prompts,
+        padding=True,
+        truncation=True,
+        max_length=max_length,
+        return_token_type_ids=False,
+        return_tensors="pt",
+    )
+    with torch.autocast(device.type, dtype=amp_dtype, enabled=amp_dtype != torch.float32):
         embeddings = model(
             input_ids=inputs["input_ids"].to(device),
             attention_mask=inputs["attention_mask"].to(device),
         )
-        batches.append(embeddings.cpu())
-    return torch.cat(batches)
+    return embeddings.float().cpu()
 
 
 def predict(

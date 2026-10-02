@@ -31,8 +31,10 @@ class Embedder(nn.Module):
             projection_output_dim: int | None = None,
             model_name: str = BACKBONE,
             _load_pretrained: bool = False,
+            pooling_layer: int = -1,
     ):
         super().__init__()
+        self.pooling_layer = pooling_layer
         if _load_pretrained:
             config = AutoConfig.from_pretrained(model_name)
             self.encoder = AutoModel.from_config(config)
@@ -73,8 +75,17 @@ class Embedder(nn.Module):
         return embedder, tokenizer, config
 
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor):
-        output = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
-        output = self._mean_pooling(output.last_hidden_state, attention_mask)
+        if self.pooling_layer == -1:
+            output = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
+            hidden_state = output.last_hidden_state
+        else:
+            output = self.encoder(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                output_hidden_states=True,
+            )
+            hidden_state = output.hidden_states[self.pooling_layer]
+        output = self._mean_pooling(hidden_state, attention_mask)
         if self.projection_head is not None:
             output = self.projection_head(output)
         return output
