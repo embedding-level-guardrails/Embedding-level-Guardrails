@@ -8,3 +8,8 @@ venv/
 rq3_training/checkpoints/
 rq3_training/results/*.pt
 rq3_training/.cache/
+temp.py
+rq3_training/checkpoints_small/
+rq2_ablation/training_pairs/data/
+e5-small.md
+ettin.md
