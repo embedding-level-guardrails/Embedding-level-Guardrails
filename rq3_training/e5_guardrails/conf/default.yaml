@@ -1,0 +1,125 @@
+# RQ3 / E5: frozen E5 vs CE vs binary SupCon vs CE + SupCon, compared through
+# one shared linear-probe protocol. Override any key from the CLI, e.g.
+#   --set protocol=wildguard_to_toxicchat --set training.epochs=2
+#
+# Outputs go to <output_dir>/<protocol>/..., so switching protocol never
+# overwrites another protocol's splits, checkpoints or predictions.
+
+protocol: aegis_to_toxicchat
+variant: main   # names the training-set / run directory; RQ2 ablations use their own
+output_dir: outputs
+
+protocols:
+  # Original protocol. Official AEGIS 2.0 validation/test are kept; calibration
+  # is carved out of official train.
+  aegis_to_toxicchat:
+    source: aegis
+    files:
+      train: hf://datasets/nvidia/Aegis-AI-Content-Safety-Dataset-2.0@d86bb8bedff51d25ac834ab7838f1cc61acb7a2c/train.json
+      validation: hf://datasets/nvidia/Aegis-AI-Content-Safety-Dataset-2.0@d86bb8bedff51d25ac834ab7838f1cc61acb7a2c/validation.json
+      holdout: hf://datasets/nvidia/Aegis-AI-Content-Safety-Dataset-2.0@d86bb8bedff51d25ac834ab7838f1cc61acb7a2c/test.json
+    carve: {calibration: 0.1}
+    extra_eval: {}
+  # WildGuardTrain has no official validation/test of its own: validation,
+  # calibration and the internal hold-out are carved out of it. WildGuardTest
+  # is an additional evaluation set.
+  wildguard_to_toxicchat:
+    source: wildguardmix
+    files:
+      train: hf://datasets/allenai/wildguardmix@d29c47f41c8b51348b5c8e8c81c039b3132b66d1/train/wildguard_train.parquet
+    carve: {validation: 0.1, calibration: 0.1, holdout: 0.1}
+    extra_eval:
+      wildguardtest: hf://datasets/allenai/wildguardmix@d29c47f41c8b51348b5c8e8c81c039b3132b66d1/test/wildguard_test.parquet
+
+# Shared by both protocols; never used for training, probe fitting, checkpoint
+# or hyperparameter selection, or the operating threshold.
+ood:
+  toxicchat: hf://datasets/lmsys/toxic-chat@29df8e4dba60e1f4af4b4075c0705c5b313548a8/data/0124/toxic-chat_annotation_test.csv
+
+preprocess:
+  placeholders: ["REDACTED", "[REDACTED]"]  # compared case-insensitively after strip
+  near_duplicate:
+    enabled: true
+    threshold: 0.9  # TF-IDF (word 1-2 gram) cosine
+  # Source rows whose family has an exact or near match in any evaluation set
+  # are dropped from train/validation/calibration ("drop") or only reported
+  # ("report"). Evaluation sets are never modified by this rule.
+  eval_overlap_action: drop
+  split_seed: 42  # splits are fixed once per protocol, shared by all modes/seeds
+  max_rows_per_split: null  # smoke tests only: stratified cap applied after splitting
+
+model:
+  # e5-base-v2: English E5 (ToxicChat, AEGIS and WildGuardMix are English),
+  # 110M params, 768-d, 512-token limit; inputs use the "query: " prefix,
+  # mean pooling over non-padding tokens, L2 normalization (model card).
+  name: intfloat/e5-base-v2
+  revision: f52bf8ec8c7124536f0efb74aca902b2995e5bcd
+  prefix: "query: "
+  max_length: 512
+  projection_dim: 128
+
+loss:
+  temperature: 0.1
+  supcon_weight: 1.0  # lambda in CE + lambda * SupCon (mode ce_supcon)
+
+# Train-only augmentation and pair-aware sampling (RQ2). Off for the main RQ3
+# comparison: all modes then train on the same source texts only.
+augmentation:
+  templates: https://raw.githubusercontent.com/centerforaisafety/HarmBench/8e1604d1171fe8a48d8febecd22f600e462bdcdd/baselines/human_jailbreaks/jailbreaks.py
+  wrapper_types: []         # jailbreak_variant (harmful anchors), benign_twin (safe anchors)
+  anchor_fraction: 0.1      # share of train anchors (per wrapper type) that get wrapped
+  wrappers_per_anchor: 1
+pairs:
+  types: []                 # co-located in batches: jailbreak_variant, benign_twin, paraphrase_candidate, safe_harm_contrast
+  pair_prob: 0.5            # chance an anchor with partners pulls one into its batch
+  paraphrase_min_sim: 0.5   # TF-IDF band for paraphrase *candidates* (unverified)
+  paraphrase_max_sim: 0.9
+  n_contrast: 2000
+
+training:
+  batch_size: 64            # = contrastive batch: no gradient accumulation
+  steps_per_epoch: 500      # identical batch sequence for every mode at a given seed
+  epochs: 4
+  lr: 2.0e-5                # encoder
+  head_lr: 1.0e-3           # classification / projection heads (fresh init)
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  max_grad_norm: 1.0
+  device: auto              # auto, cuda, mps, cpu
+  precision: auto           # auto (bf16 on supporting CUDA, else fp32), bf16, fp32
+  gradient_checkpointing: true
+
+# Checkpoint selection is mode-agnostic: after each epoch a quick linear probe
+# on h (fit on a fixed train subset) is scored by ROC-AUC on source validation.
+selection:
+  probe_train_samples: 4000
+  val_samples: 4000
+
+probe:
+  max_train_samples: 30000  # stratified subsample of source train; null = all
+  c_grid: [0.01, 0.1, 1.0, 10.0]  # chosen by ROC-AUC on source validation
+  max_iter: 2000
+  embed_batch_size: 128
+
+evaluation:
+  target_fpr: 0.01
+  bootstrap: {n: 1000, seed: 0}
+
+# Equal hyperparameter budget per mode (same number of trials), selected on
+# source validation with the same criterion as checkpoint selection.
+sweep:
+  ce:
+    - {training.lr: 1.0e-5}
+    - {training.lr: 2.0e-5}
+    - {training.lr: 3.0e-5}
+    - {training.lr: 5.0e-5}
+  supcon:
+    - {training.lr: 1.0e-5, loss.temperature: 0.05}
+    - {training.lr: 1.0e-5, loss.temperature: 0.1}
+    - {training.lr: 3.0e-5, loss.temperature: 0.05}
+    - {training.lr: 3.0e-5, loss.temperature: 0.1}
+  ce_supcon:
+    - {training.lr: 1.0e-5, loss.supcon_weight: 0.5}
+    - {training.lr: 1.0e-5, loss.supcon_weight: 1.0}
+    - {training.lr: 3.0e-5, loss.supcon_weight: 0.5}
+    - {training.lr: 3.0e-5, loss.supcon_weight: 1.0}
