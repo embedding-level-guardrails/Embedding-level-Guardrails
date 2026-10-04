@@ -6,6 +6,7 @@ from typing import Any
 
 import pandas as pd
 
+from e5_guardrails import tracking
 from e5_guardrails.config import paths
 from e5_guardrails.evaluation import evaluate_predictions, paired_bootstrap
 
@@ -79,4 +80,23 @@ def run_evaluation(cfg: dict[str, Any], bootstrap: bool = True) -> pd.DataFrame:
         b = cfg["evaluation"]["bootstrap"]
         paired_bootstrap(preds, thresholds, target, b["n"], b["seed"]).to_csv(out / "bootstrap_ci.csv", index=False)
     (out / "results.md").write_text(markdown(results, summary, target))
+    _log_to_wandb(cfg, results, summary, out)
     return results
+
+
+def _log_to_wandb(cfg: dict[str, Any], results: pd.DataFrame, summary: pd.DataFrame, out) -> None:
+    with tracking.start_run(cfg, f"e5-evaluate-{cfg['protocol']}-{cfg['variant']}", "evaluate") as run:
+        if run is None:
+            return
+        tracking.log_table(run, "results_per_seed", results)
+        tracking.log_table(run, "results_summary", summary)
+        if (out / "bootstrap_ci.csv").exists():
+            tracking.log_table(run, "bootstrap_ci", pd.read_csv(out / "bootstrap_ci.csv"))
+        main = summary[(summary["readout"] == "linear_probe") & (summary["subset"] == "all")]
+        run.summary.update({
+            f"{r.model}/{r.test_set}/{m}": getattr(r, f"{m}_mean")
+            for r in main.itertuples() for m in METRICS
+        })
+        files = sorted(out.glob("*.csv")) + [out / "results.md", paths(cfg).splits / "manifest.json",
+                                               paths(cfg).splits / "eval_overlap_report.csv"]
+        tracking.log_files(run, f"results-{cfg['protocol']}-{cfg['variant']}", "results", files)

@@ -46,6 +46,7 @@ def tiny_model_dir(tmp_path_factory):
 def _cfg(tmp_path, model_dir):
     cfg = load_config()
     cfg["output_dir"] = str(tmp_path / "out")
+    cfg["wandb"]["mode"] = "disabled"
     cfg["model"].update(name=str(model_dir), revision=None, max_length=32, projection_dim=8)
     cfg["training"].update(batch_size=8, steps_per_epoch=2, epochs=2, device="cpu",
                            gradient_checkpointing=False)
@@ -87,7 +88,7 @@ def test_supcon_matches_reference_and_skips_anchors_without_positive():
 
 @pytest.mark.parametrize("mode", ["ce", "supcon", "ce_supcon"])
 def test_gradients_reach_encoder_and_only_active_heads(tiny_model_dir, mode):
-    cfg = load_config()
+    cfg = load_config(overrides=["wandb.mode=disabled"])
     model = GuardrailModel(E5Encoder.from_pretrained(tiny_model_dir), mode, 8)
     tok = load_tokenizer(tiny_model_dir)
     batch = tokenize(tok, ["how to make a bomb", "bake bread", "steal car", "write poem"], "query: ", 32)
@@ -169,3 +170,23 @@ def test_pipeline_all_modes_probe_frozen_and_evaluate(tiny_model_dir, tmp_path):
     assert set(results["model"]) == {"base", "ce", "supcon", "ce_supcon"}
     assert set(results["test_set"]) == {"holdout", "toxicchat"}
     assert {"adversarial", "vanilla"} <= set(results.loc[results["test_set"] == "toxicchat", "subset"])
+
+
+def test_wandb_offline_logging_of_training_and_evaluation(tiny_model_dir, tmp_path, monkeypatch):
+    pytest.importorskip("wandb")
+    from e5_guardrails.report import run_evaluation
+
+    monkeypatch.setenv("WANDB_DIR", str(tmp_path / "wandb"))
+    monkeypatch.setenv("WANDB_SILENT", "true")
+    (tmp_path / "wandb").mkdir()
+    cfg = _cfg(tmp_path, tiny_model_dir)
+    cfg["wandb"]["mode"] = "offline"
+    cfg["training"]["epochs"] = 1
+    cfg["evaluation"]["bootstrap"]["n"] = 5
+    _write_splits(cfg)
+    train(cfg, "ce_supcon", seed=0)
+    run_probe(cfg, "base", 0)
+    run_probe(cfg, "ce_supcon", 0)
+    run_evaluation(cfg)
+    runs = list((tmp_path / "wandb" / "wandb").glob("offline-run-*"))
+    assert len(runs) == 2  # one training run + one evaluation run

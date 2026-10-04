@@ -154,6 +154,23 @@ hold-out и ToxicChat: FPR, FNR, TPR, TP/FP/TN/FN. На OOD порог зано�
 Выходы в `outputs/<protocol>/results/<variant>/`: `results_per_seed.csv`,
 `results_summary.csv`, `bootstrap_ci.csv`, `predictions.parquet`, `results.md`.
 
+## Где смотреть результаты
+
+- **Файлы** (основной источник): `outputs/<protocol>/` — сплиты и manifest,
+  checkpoint, логи обучения, predictions, таблицы. В Colab ноутбук пишет их на
+  Google Drive.
+- **W&B**, так же как у запусков Ettin: проект `embedding-level-guardrails`,
+  аккаунт по умолчанию (`wandb` в конфиге). Группа `e5-<protocol>-<variant>`,
+  теги `e5`, протокол, вариант.
+  - `train`-run на каждый (режим, seed): лоссы по шагам (`train/ce_loss`,
+    `train/supcon_loss`, `train/total_loss`), метрики по эпохам (`epoch/...`,
+    включая `selection_roc_auc`), полный конфиг, итоговая сводка и логи как
+    артефакт.
+  - `evaluate`-run: таблицы `results_per_seed`, `results_summary`,
+    `bootstrap_ci`, сводные метрики `<model>/<test_set>/<metric>` и артефакт с
+    CSV, `results.md`, `manifest.json` и отчётом о пересечениях.
+  - Отключить: `--set wandb.mode=disabled`; без сети: `--set wandb.mode=offline`.
+
 ## RQ2: типы пар (после фиксации RQ3)
 
 | тип | меняет | как |
@@ -182,7 +199,8 @@ hold-out и ToxicChat: FPR, FNR, TPR, TP/FP/TN/FN. На OOD порог зано�
 ## Запуск
 
 Зависимости: torch, transformers, scikit-learn, pandas, pyarrow, pyyaml (в Colab
-уже установлены).
+уже установлены), wandb. В Colab всё запускается из
+`notebooks/rq3_e5_colab.ipynb`.
 
 ```bash
 cd rq3_training/e5_guardrails

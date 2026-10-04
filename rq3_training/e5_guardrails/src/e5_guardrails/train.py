@@ -25,7 +25,7 @@ import torch
 from torch.nn.functional import cross_entropy
 from transformers import get_linear_schedule_with_warmup
 
-from e5_guardrails import augment
+from e5_guardrails import augment, tracking
 from e5_guardrails import splits as splits_mod
 from e5_guardrails.config import MODES, paths
 from e5_guardrails.losses import supcon_loss
@@ -107,6 +107,12 @@ def _validation_losses(model, val, tokenizer, cfg, device, amp_dtype) -> dict[st
 def train(cfg: dict[str, Any], mode: str, seed: int) -> dict[str, Any]:
     if mode not in MODES:
         raise ValueError(f"mode must be one of {MODES}")
+    name = f"e5-{mode}-seed={seed}-lr={cfg['training']['lr']:g}"
+    with tracking.start_run(cfg, name, "train", {**cfg, "mode": mode, "seed": seed}) as run:
+        return _train(cfg, mode, seed, run)
+
+
+def _train(cfg: dict[str, Any], mode: str, seed: int, run: Any) -> dict[str, Any]:
     p = paths(cfg)
     run_dir = p.run(mode, seed)
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -165,6 +171,9 @@ def train(cfg: dict[str, Any], mode: str, seed: int) -> dict[str, Any]:
             global_step += 1
             for k, v in logs.items():
                 sums[k] = sums.get(k, 0.0) + v
+            if run is not None:
+                run.log({**{f"train/{k}": v for k, v in logs.items()},
+                         "train/lr_encoder": scheduler.get_last_lr()[0]}, step=global_step)
         record = {"epoch": epoch, "global_step": global_step, "seconds": round(time.time() - started, 1),
                   "lr_encoder": scheduler.get_last_lr()[0],
                   **{f"train_{k}": v / tcfg["steps_per_epoch"] for k, v in sums.items()}}
@@ -173,6 +182,8 @@ def train(cfg: dict[str, Any], mode: str, seed: int) -> dict[str, Any]:
         with log_path.open("a") as f:
             f.write(json.dumps(record) + "\n")
         print(json.dumps({"mode": mode, "seed": seed, **record}), flush=True)
+        if run is not None:
+            run.log({f"epoch/{k}": v for k, v in record.items()}, step=global_step)
         if record["selection_roc_auc"] > best["selection_roc_auc"]:
             best = {"selection_roc_auc": record["selection_roc_auc"], "epoch": epoch}
             save_checkpoint(model, tokenizer, cfg, p.checkpoint(mode, seed),
@@ -190,4 +201,8 @@ def train(cfg: dict[str, Any], mode: str, seed: int) -> dict[str, Any]:
         "training_set": aug_report,
     }
     (run_dir / "train_summary.json").write_text(json.dumps(summary, indent=2, default=str))
+    if run is not None:
+        run.summary.update({k: v for k, v in summary.items() if k != "training_set"})
+        tracking.log_files(run, f"train-{cfg['protocol']}-{cfg['variant']}-{mode}-seed{seed}", "train-logs",
+                           [log_path, run_dir / "train_summary.json"])
     return summary

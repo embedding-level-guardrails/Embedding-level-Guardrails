@@ -9,6 +9,12 @@ protocol: aegis_to_toxicchat
 variant: main   # names the training-set / run directory; RQ2 ablations use their own
 output_dir: outputs
 
+# Same W&B setup as the team's Ettin runs. Use mode=disabled to turn it off.
+wandb:
+  project: embedding-level-guardrails
+  entity: null  # default W&B account/team
+  mode: online  # online, offline, disabled
+
 protocols:
   # Original protocol. Official AEGIS 2.0 validation/test are kept; calibration
   # is carved out of official train.
