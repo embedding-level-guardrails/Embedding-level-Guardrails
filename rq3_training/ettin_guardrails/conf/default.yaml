@@ -8,6 +8,9 @@ wandb:
 models:
   classifier:
     head_hidden_dim: 256
+    freeze_embedder: false
+  embedder:
+    pooling_source: hidden_state
 
 supcon_loss:
   temperature: 0.1

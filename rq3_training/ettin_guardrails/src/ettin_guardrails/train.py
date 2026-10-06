@@ -18,7 +18,7 @@ from transformers.utils import logging as transformers_logging
 
 from ettin_guardrails.checkpoint import save_checkpoint
 from ettin_guardrails.data import TokenizedDataset, load_data, split_validation_data
-from ettin_guardrails.model import Classifier, LinearProbe, Embedder, BACKBONE
+from ettin_guardrails.model import Classifier, Embedder, BACKBONE
 from ettin_guardrails.runtime import configure_device, configure_precision
 
 logger = logging.getLogger(__name__)
@@ -109,9 +109,6 @@ def _initialize_model(model_type: str, context: TrainingContext) -> ModelTrainin
     embedder_cfg = cfg.models.get("embedder", {})
     name_parts = [model_type]
     match model_type:
-        case "linear-probe":
-            model = LinearProbe()
-            encoder = model.backbone
         case "classifier":
             model = Classifier(**classifier_cfg)
             encoder = model.embedder.encoder
@@ -162,7 +159,6 @@ def _backward_step(loss: torch.Tensor, context: TrainingContext, state: ModelTra
 
 
 def train_classifier_epoch(context: TrainingContext, state: ModelTrainingState) -> EpochMetrics:
-    """Train either classifier implementation with cross-entropy."""
     train_loss = 0.0
     train_samples = 0
     val_loss = 0.0
@@ -294,7 +290,6 @@ def _train_model(
 
 def train(cfg: DictConfig) -> None:
     epoch_loops = {
-        "linear-probe": train_classifier_epoch,
         "classifier": train_classifier_epoch,
         "embedder": train_embedder_epoch,
     }
