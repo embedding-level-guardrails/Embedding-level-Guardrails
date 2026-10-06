@@ -115,6 +115,7 @@ class Classifier(BaseClassifier):
 
     def __init__(
             self,
+            pooling_source: str = "hidden_state",
             freeze_embedder: bool = False,
             head_hidden_dim: int | None = None,
             backbone_name: str | None = None,
@@ -123,6 +124,7 @@ class Classifier(BaseClassifier):
         super().__init__()
         if backbone_name is None or _load_pretrained:
             self.embedder = Embedder(
+                pooling_source=pooling_source,
                 _load_pretrained=_load_pretrained
             )
         else:

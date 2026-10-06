@@ -7,7 +7,7 @@ backbone_name ?=
 .PHONY: help linear-probe ettin-classifier embedder finetuned-ettin-classifier
 
 help:
-	@echo "Training targets: linear-probe, classifier, embedder, joint-classifier"
+	@echo "Training targets: linear-classifier, classifier, embedder"
 
 linear-classifier:
 	@cd "$(TRAIN_DIR)" && uv run -m ettin_guardrails.train training.models=classifier \

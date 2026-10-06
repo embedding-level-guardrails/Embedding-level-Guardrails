@@ -9,6 +9,7 @@ models:
   classifier:
     head_hidden_dim: 256
     freeze_embedder: false
+    pooling_source: hidden_state
   embedder:
     pooling_source: hidden_state
 
