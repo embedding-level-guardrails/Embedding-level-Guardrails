@@ -149,8 +149,11 @@ class Classifier(BaseClassifier):
             raise ValueError(f"Expected a classifier checkpoint, got {model_type}")
         models_config = checkpoint["config"]["models"]
         classifier_config = dict(models_config.get("classifier", {}))
+        state_dict = checkpoint["model"]
+        has_mlm_head = any(key.startswith("embedder.mlm_head.") for key in state_dict)
+        classifier_config["pooling_source"] = "mlm_output" if has_mlm_head else "hidden_state"
         model = cls(**classifier_config, _load_pretrained=True)
-        model.load_state_dict(checkpoint["model"])
+        model.load_state_dict(state_dict)
         return model
 
     def train(self, mode: bool = True) -> "Classifier":
