@@ -1,13 +1,22 @@
-"""Шаг 8 (RQ3): дообучение энкодера на парах из шага 07, с трекингом в MLflow.
+"""Шаг 8 (RQ3): дообучение энкодера с трекингом в MLflow.
 
-    python scripts/08_train_contrastive.py --config configs/rq3_contrastive.yaml
+    python scripts/08_train_contrastive.py --config configs/rq3_wgm_pure.yaml --objective supcon
     python scripts/08_train_contrastive.py --objective classification --run-name ce-baseline
-    python scripts/08_train_contrastive.py --pair-types safe_harm_contrast jailbreak_variant
+    python scripts/08_train_contrastive.py --pair-types safe_harm_contrast adversarial_contrast
     python scripts/08_train_contrastive.py --limit-pairs 200 --epochs 1 --no-mlflow   # быстрый прогон
 
-Контролируемое сравнение RQ3: три запуска с одним и тем же `--config` и разным
-`--objective` (contrastive / classification / joint) дают ту самую тройку, которой,
-судя по литобзору, в работах нет.
+Объективы (`--objective`):
+  classification — CE поверх линейной головы
+  contrastive    — InfoNCE на триплетах из шага 07
+  joint          — InfoNCE на триплетах + CE на текстах
+  supcon         — Supervised Contrastive на текстах с метками, триплеты не нужны
+  supcon_joint   — SupCon + CE на одном батче текстов
+
+Откуда берутся тексты для CE и SupCon, задаёт `training.text_source` в конфиге:
+  pairs   — texts_train.jsonl, плоский список текстов из триплетов (так было раньше);
+  dataset — нормализованный train самого датасета, без триплетов.
+При сборке пар в режиме coverage (шаг 07) это одно и то же множество текстов —
+скрипт это проверяет и пишет в лог, так что все объективы учатся на одних текстах.
 
 Дообученный чекпоинт кладётся в {output_dir}/{run}/checkpoint и читается обычным
 AutoModel — то есть его можно подставить в configs/rq1.yaml как ещё один энкодер
@@ -27,6 +36,7 @@ from eguard.config import load_config  # noqa: E402
 from eguard.data import load_split  # noqa: E402
 from eguard.pairs import load_pairs  # noqa: E402
 from eguard.training import GuardEncoder, TrainConfig, build_model, frozen_teacher, start_run, train  # noqa: E402
+from eguard.training.loop import OBJECTIVES, needs_head, needs_pairs  # noqa: E402
 from eguard.utils import ensure_dir, get_logger, save_json, set_seed  # noqa: E402
 
 logger = get_logger("train_contrastive")
@@ -36,6 +46,7 @@ def build_train_config(cfg, args) -> TrainConfig:
     raw = dict(cfg.training)
     raw.pop("device", None)
     raw.pop("output_dir", None)
+    raw.pop("text_source", None)
 
     overrides = {
         "objective": args.objective, "loss": args.loss, "epochs": args.epochs,
@@ -56,7 +67,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="configs/rq3_contrastive.yaml")
     ap.add_argument("--encoder", default=None, help="ключ энкодера из конфига")
-    ap.add_argument("--objective", default=None, choices=["contrastive", "classification", "joint"])
+    ap.add_argument("--objective", default=None, choices=list(OBJECTIVES))
     ap.add_argument("--loss", default=None,
                     choices=["info_nce", "supervised_contrastive", "triplet_margin"])
     ap.add_argument("--pair-types", nargs="*", default=None, help="абляция RQ2: подмножество типов пар")
@@ -79,23 +90,48 @@ def main() -> None:
     train_cfg = build_train_config(cfg, args)
 
     pairs_name = cfg.pairs.get("name", "pairs_v1")
-    pairs_train = load_pairs(cfg.paths.processed, pairs_name, "train", "pairs")
-    texts_train = load_pairs(cfg.paths.processed, pairs_name, "train", "texts")
+    text_source = cfg.training.get("text_source", "pairs")
+    if text_source not in ("pairs", "dataset"):
+        raise SystemExit(f"training.text_source: ожидалось pairs или dataset, получено {text_source!r}")
+
+    # Триплеты читаются только тем объективам, которым они нужны: SupCon и CE
+    # обходятся текстами, и для них шаг 07 можно вообще не запускать.
+    pairs_train = load_pairs(cfg.paths.processed, pairs_name, "train", "pairs") \
+        if needs_pairs(train_cfg.objective) else []
+    if text_source == "dataset":
+        texts_train = load_split(cfg.paths.processed, cfg.dataset.name, "train")
+    else:
+        texts_train = load_pairs(cfg.paths.processed, pairs_name, "train", "texts")
+
+    # Контроль: тексты триплетов и тексты CE/SupCon должны совпадать, иначе
+    # сравнение объективов перестаёт быть сравнением при одних и тех же данных.
+    texts_match = None
+    if pairs_train and text_source == "dataset":
+        pair_texts = {p[k].strip() for p in pairs_train for k in ("anchor", "positive", "negative")}
+        own_texts = {r["text"].strip() for r in texts_train}
+        texts_match = pair_texts == own_texts
+        if texts_match:
+            logger.info("Тексты триплетов совпадают с текстами датасета: %d", len(own_texts))
+        else:
+            logger.warning("Тексты триплетов и датасета различаются: только в триплетах %d, "
+                           "только в датасете %d", len(pair_texts - own_texts), len(own_texts - pair_texts))
+
     if args.limit_pairs:
         pairs_train = pairs_train[: args.limit_pairs]
         texts_train = texts_train[: args.limit_pairs * 2]
 
-    # Валидация — исходный AEGIS val, а не пары: метрика должна отражать реальный
+    # Валидация — исходный val датасета, а не пары: метрика должна отражать реальный
     # вход guardrail, а не распределение сконструированных триплетов.
     val_records = load_split(cfg.paths.processed, cfg.dataset.name, "val")
-    logger.info("%s | пар=%d, текстов=%d, val=%d", encoder_key,
-                len(pairs_train), len(texts_train), len(val_records))
+    logger.info("%s | %s | триплетов=%d, текстов=%d (%s), val=%d", encoder_key, train_cfg.objective,
+                len(pairs_train), len(texts_train), text_source, len(val_records))
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    run_name = args.run_name or f"{encoder_key}-{train_cfg.objective}-{train_cfg.loss}-{stamp}"
+    suffix = f"-{train_cfg.loss}" if needs_pairs(train_cfg.objective) else ""
+    run_name = args.run_name or f"{encoder_key}-{train_cfg.objective}{suffix}-{stamp}"
     output_dir = ensure_dir(Path(cfg.training.get("output_dir", "artifacts/runs")) / run_name)
 
-    with_head = train_cfg.objective in ("classification", "joint")
+    with_head = needs_head(train_cfg.objective)
     model, device = build_model(spec, device=args.device or cfg.training.get("device", "auto"),
                                 with_head=with_head)
     if train_cfg.gradient_checkpointing:
@@ -115,8 +151,9 @@ def main() -> None:
         "encoder": {"key": encoder_key, "hf_id": spec.hf_id, "pooling": spec.pooling,
                     "max_length": spec.max_length, "prefix": spec.prefix},
         "training": {k: getattr(train_cfg, k) for k in TrainConfig.__dataclass_fields__},
-        "data": {"pairs_name": pairs_name, "n_pairs_train": len(pairs_train),
-                 "n_texts_train": len(texts_train), "n_val": len(val_records),
+        "data": {"pairs_name": pairs_name if pairs_train else "—", "n_pairs_train": len(pairs_train),
+                 "n_texts_train": len(texts_train), "text_source": text_source,
+                 "texts_match_pairs": texts_match, "n_val": len(val_records),
                  "pair_types": train_cfg.pair_types or "all"},
         "device": str(device),
     })
@@ -132,7 +169,9 @@ def main() -> None:
 
     save_json(Path(output_dir) / "result.json",
               {"run_name": run_name, "encoder": encoder_key, "objective": train_cfg.objective,
-               "loss": train_cfg.loss, "mlflow_run_id": tracker.run_id, **result})
+               "loss": train_cfg.loss if needs_pairs(train_cfg.objective) else None,
+               "text_source": text_source, "texts_match_pairs": texts_match,
+               "mlflow_run_id": tracker.run_id, **result})
     Path(output_dir, "config_used.json").write_text(
         json.dumps({k: getattr(train_cfg, k) for k in TrainConfig.__dataclass_fields__},
                    ensure_ascii=False, indent=2), encoding="utf-8")

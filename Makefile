@@ -4,8 +4,10 @@ RQ3_CONFIG ?= configs/rq3_contrastive.yaml
 OOD_CONFIG ?= configs/ood_toxicchat.yaml
 WGM_CONFIG ?= configs/rq2_pairs_wildguardmix.yaml
 WGM_RQ3_CONFIG ?= configs/rq3_wildguardmix.yaml
+PURE_PAIRS_CONFIG ?= configs/rq2_pairs_wgm_pure.yaml
+PURE_CONFIG ?= configs/rq3_wgm_pure.yaml
 
-.PHONY: setup data ood-data wgm-pairs rq3-wgm lodo-wgm embed rq1 pairs rq3 lodo rq3-ablation mlflow test smoke smoke-rq3 clean
+.PHONY: setup data ood-data wgm-pairs rq3-wgm lodo-wgm geometry-wgm export-hf pure-data rq3-pure lodo-pure geometry-pure embed rq1 pairs rq3 lodo rq3-ablation mlflow test smoke smoke-rq3 clean
 
 setup:
 	pip install -r requirements.txt
@@ -24,6 +26,37 @@ wgm-pairs:
 	python scripts/01_embed.py --config $(WGM_CONFIG)
 	python scripts/07_build_pairs.py --config $(WGM_CONFIG)
 
+# Собрать дообученную модель для Hugging Face Hub (без загрузки).
+# RUN — каталог прогона, REPO — будущий репозиторий. Загрузка: scripts/12_push_to_hub.py
+RUN ?= wgm-joint
+REPO ?= USER/e5-small-v2-wildguardmix-joint
+export-hf:
+	python scripts/11_export_hf.py --config $(WGM_RQ3_CONFIG) --run $(RUN) --repo-id $(REPO)
+
+# «Чистый» WildGuardMix: данные -> эмбеддинги e5 -> триплеты в режиме coverage.
+# Если wgm-pairs уже запускался, шаги 00 и 01 просто переиспользуют готовое.
+pure-data:
+	python scripts/00_prepare_data.py --config $(PURE_PAIRS_CONFIG)
+	python scripts/01_embed.py --config $(PURE_PAIRS_CONFIG)
+	python scripts/07_build_pairs.py --config $(PURE_PAIRS_CONFIG)
+
+# Пять вариантов обучения на одних и тех же текстах + оценка + геометрия.
+# Результаты: results/wgm_pure/rq3/, чекпоинты: artifacts/runs_wgm_pure/
+rq3-pure:
+	python scripts/08_train_contrastive.py --config $(PURE_CONFIG) --objective classification --run-name pure-classification
+	python scripts/08_train_contrastive.py --config $(PURE_CONFIG) --objective contrastive    --run-name pure-contrastive
+	python scripts/08_train_contrastive.py --config $(PURE_CONFIG) --objective joint          --run-name pure-joint
+	python scripts/08_train_contrastive.py --config $(PURE_CONFIG) --objective supcon         --run-name pure-supcon
+	python scripts/08_train_contrastive.py --config $(PURE_CONFIG) --objective supcon_joint   --run-name pure-supcon-joint
+	$(MAKE) lodo-pure
+	$(MAKE) geometry-pure
+
+lodo-pure:
+	python scripts/09_eval_lodo.py --config $(PURE_CONFIG) --ood-config $(OOD_CONFIG)
+
+geometry-pure:
+	python scripts/10_embedding_geometry.py --config $(PURE_CONFIG) --ood-config $(OOD_CONFIG)
+
 embed:
 	python scripts/01_embed.py --config $(CONFIG)
 
@@ -41,15 +74,21 @@ rq3:
 	python scripts/08_train_contrastive.py --config $(RQ3_CONFIG) --objective joint          --run-name rq3-joint
 	$(MAKE) lodo
 
-# RQ3 на WildGuardMix: три objective + LODO. Результат: results/wildguardmix/rq3/LODO.md
+# RQ3 на WildGuardMix: три objective + LODO + геометрия. Результаты: results/wildguardmix/rq3/
 rq3-wgm:
 	python scripts/08_train_contrastive.py --config $(WGM_RQ3_CONFIG) --objective classification --run-name wgm-classification
 	python scripts/08_train_contrastive.py --config $(WGM_RQ3_CONFIG) --objective contrastive    --run-name wgm-contrastive
 	python scripts/08_train_contrastive.py --config $(WGM_RQ3_CONFIG) --objective joint          --run-name wgm-joint
 	$(MAKE) lodo-wgm
+	$(MAKE) geometry-wgm
 
 lodo-wgm:
 	python scripts/09_eval_lodo.py --config $(WGM_RQ3_CONFIG) --ood-config $(OOD_CONFIG)
+
+# Как objective перестроил пространство: порядок в триплетах и геометрия.
+# Результат: results/wildguardmix/rq3/GEOMETRY.md
+geometry-wgm:
+	python scripts/10_embedding_geometry.py --config $(WGM_RQ3_CONFIG) --ood-config $(OOD_CONFIG)
 
 # Сравнение на hold-out (AEGIS test) и OOD (ToxicChat) при пороге с AEGIS val.
 lodo:

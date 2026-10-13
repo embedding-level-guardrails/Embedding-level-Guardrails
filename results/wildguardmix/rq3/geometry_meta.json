@@ -1,0 +1,16 @@
+{
+  "encoder": "e5-small-v2",
+  "pairs": "wildguardmix_harmbench_v1",
+  "pairs_split": "test",
+  "n_triplets": 3233,
+  "holdout": "wildguardmix",
+  "ood": "toxicchat",
+  "ood_sample": 1500,
+  "sample_seed": 0,
+  "models": [
+    "e5-small-v2-frozen",
+    "wgm-classification",
+    "wgm-contrastive",
+    "wgm-joint"
+  ]
+}

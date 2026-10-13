@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -109,3 +110,43 @@ def test_controls_and_bootstrap():
     x, y = _toy_data(n=400)
     ci = bootstrap_ci(y, x[:, 0], n_boot=200, seed=0)
     assert ci["auroc_lo"] <= ci["auroc_hi"]
+
+
+def test_class_cosine_summary_matches_brute_force():
+    """Формула через средние векторы обязана совпадать с прямым перебором пар."""
+    from eguard.analysis.geometry import class_cosine_summary
+    from eguard.utils import l2_normalize
+
+    x, y = _toy_data(n=60, dim=8)
+    v = l2_normalize(x.astype(np.float64))
+    s = v @ v.T
+    safe, harm = np.where(y == 0)[0], np.where(y == 1)[0]
+
+    def within(idx):
+        block = s[np.ix_(idx, idx)]
+        return (block.sum() - len(idx)) / (len(idx) * (len(idx) - 1))
+
+    got = class_cosine_summary(x, y)
+    assert got["cos_safe_harm"] == pytest.approx(s[np.ix_(safe, harm)].mean())
+    assert got["cos_within_safe"] == pytest.approx(within(safe))
+    assert got["cos_within_harm"] == pytest.approx(within(harm))
+
+
+def test_pc1_share_detects_collapsed_space():
+    from eguard.analysis.geometry import pc1_share
+
+    rng = np.random.default_rng(0)
+    isotropic = rng.normal(size=(300, 16))
+    collapsed = isotropic.copy()
+    collapsed[:, 0] *= 20                       # почти весь разброс вдоль одной оси
+    assert pc1_share(collapsed) > 0.8 > pc1_share(isotropic)
+
+
+def test_triplet_margins_sign():
+    from eguard.analysis.geometry import triplet_margins
+
+    a = np.array([[1.0, 0.0], [1.0, 0.0]])
+    p = np.array([[1.0, 0.1], [-1.0, 0.0]])
+    n = np.array([[-1.0, 0.0], [1.0, 0.1]])
+    m = triplet_margins(a, p, n)
+    assert m[0] > 0 > m[1]

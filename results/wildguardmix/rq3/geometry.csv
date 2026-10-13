@@ -1,0 +1,9 @@
+model,eval_set,n,pc1_share,cos_safe_harm,cos_within_safe,cos_within_harm
+e5-small-v2-frozen,holdout,1699,0.0707,0.7978,0.7948,0.8074
+e5-small-v2-frozen,ood,1500,0.0393,0.7718,0.7671,0.7942
+wgm-classification,holdout,1699,0.6474,-0.0319,0.6272,0.4284
+wgm-classification,ood,1500,0.4197,0.0943,0.4252,0.6064
+wgm-contrastive,holdout,1699,0.1183,0.3506,0.4471,0.401
+wgm-contrastive,ood,1500,0.0622,0.443,0.4918,0.5195
+wgm-joint,holdout,1699,0.1989,0.3426,0.527,0.4187
+wgm-joint,ood,1500,0.0896,0.4691,0.5403,0.5533

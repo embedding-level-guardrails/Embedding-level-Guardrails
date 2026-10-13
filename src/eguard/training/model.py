@@ -107,6 +107,23 @@ def load_checkpoint(path: str | Path, spec: EncoderSpec, device: str = "auto"
     return model, resolved
 
 
+def discover_runs(runs_root: str | Path, names: list[str] | None = None) -> list[tuple[str, Path]]:
+    """(имя, каталог) для каждого прогона с сохранённым чекпоинтом.
+
+    Используется скриптами оценки (09, 10): без `names` берутся все каталоги
+    `runs_root/*` с подкаталогом `checkpoint/`.
+    """
+    runs_root = Path(runs_root)
+    candidates = [runs_root / n for n in names] if names else sorted(p for p in runs_root.glob("*") if p.is_dir())
+    found = []
+    for path in candidates:
+        if (path / "checkpoint").exists():
+            found.append((path.name, path))
+        else:
+            logger.warning("%s: нет checkpoint/, пропускаю", path)
+    return found
+
+
 def frozen_teacher(spec: EncoderSpec, device: torch.device) -> GuardEncoder:
     """Замороженная копия базовой модели — якорь для KL-регуляризатора (RQ4)."""
     teacher = GuardEncoder(spec, with_head=False).to(device)

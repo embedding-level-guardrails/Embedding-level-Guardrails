@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import sys
 import zlib
+from dataclasses import asdict
 from collections import Counter
 from pathlib import Path
 
@@ -28,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from eguard.config import load_config  # noqa: E402
 from eguard.embeddings import load_xy  # noqa: E402
+from eguard.pairs.coverage import CoverageConfig, build_split_coverage  # noqa: E402
 from eguard.pairs import (  # noqa: E402
     PairContext,
     build_split,
@@ -93,6 +95,19 @@ def main() -> None:
     out_dir = ensure_dir(pairs_dir(cfg.paths.processed, name))
     mining_encoder = (pairs_cfg.get("mining") or {}).get("encoder")
 
+    # sizes — прежняя сборка (builders.py, размеры из конфига, допускает HarmBench и
+    # шаблонные тексты); coverage — каждый текст датасета ровно один раз якорь, только
+    # настоящие тексты (pairs/coverage.py).
+    mode = pairs_cfg.get("mode", "sizes")
+    if mode not in ("sizes", "coverage"):
+        raise SystemExit(f"pairs.mode: ожидалось sizes или coverage, получено {mode!r}")
+    cov_cfg = CoverageConfig.from_dict(pairs_cfg.get("coverage")) if mode == "coverage" else None
+    if mode == "coverage" and (hb_cfg.get("train_split") or external):
+        raise SystemExit("pairs.mode=coverage собирает пары только из текстов датасета: "
+                         "уберите harmbench.train_split и external_variants")
+    if mode == "coverage" and not mining_encoder:
+        raise SystemExit("pairs.mode=coverage нужен mining.encoder (эмбеддинги для поиска ближайших)")
+
     summary = {"name": name, "seed": cfg.seed, "config": pairs_cfg, "splits": []}
 
     # AEGIS содержит повторяющиеся тексты, в том числе через официальную границу
@@ -136,28 +151,48 @@ def main() -> None:
             if len(harmbench) < before:
                 logger.info("HarmBench: убрано %d behaviors, совпадающих с val/test", before - len(harmbench))
 
-        sizes = dict((pairs_cfg.get("sizes") or {}).get(split, {}))
-        if args.types:
-            sizes = {k: v for k, v in sizes.items() if k in args.types}
-        if args.scale != 1.0:
-            sizes = {k: max(int(round(v * args.scale)), 0) for k, v in sizes.items()}
-        if not sizes:
-            logger.warning("%s: размеры не заданы, сплит пропущен", split)
-            continue
+        # zlib.crc32, а не hash(): hash() строк рандомизируется в каждом процессе
+        # Python, и с ним пары не воспроизводились от запуска к запуску.
+        rng = np.random.default_rng(cfg.seed + zlib.crc32(split.encode()) % 10_000)
+        coverage = None
 
-        ctx = PairContext(
-            split=split,
-            aegis=aegis,
-            harmbench=harmbench,
-            # zlib.crc32, а не hash(): hash() строк рандомизируется в каждом процессе
-            # Python, и с ним пары не воспроизводились от запуска к запуску.
-            rng=np.random.default_rng(cfg.seed + zlib.crc32(split.encode()) % 10_000),
-            cfg=pairs_cfg,
-            external_variants=external,
-            mining=load_mining(cfg, mining_encoder, split, split_texts(aegis)),
-        )
+        if mode == "coverage":
+            mining = load_mining(cfg, mining_encoder, split, split_texts(aegis))
+            if mining is None:
+                raise SystemExit(f"{split}: нет эмбеддингов {mining_encoder} — сначала scripts/01_embed.py")
+            x_mined, mined_records = mining
+            row_of: dict[str, int] = {}
+            for k, record in enumerate(mined_records):
+                row_of.setdefault(record["text"].strip(), k)
+            x_pool = x_mined[[row_of[r["text"].strip()] for r in aegis]]   # построчно к пулу
+            pairs, coverage = build_split_coverage(split, aegis, x_pool, rng, cov_cfg, seed=cfg.seed)
+            if args.types:
+                pairs = [p for p in pairs if p["pair_type"] in args.types]
+            sizes = {"mode": "coverage"}
+            logger.info("%s: якорей %d, подозрений на ошибку разметки %d, запасных выборов %d, "
+                        "макс. повторов негатива %d, тексты покрывают пул: %s", split,
+                        coverage.n_anchors, coverage.n_suspect, coverage.n_fallback,
+                        coverage.max_negative_uses, coverage.texts_cover_pool)
+        else:
+            sizes = dict((pairs_cfg.get("sizes") or {}).get(split, {}))
+            if args.types:
+                sizes = {k: v for k, v in sizes.items() if k in args.types}
+            if args.scale != 1.0:
+                sizes = {k: max(int(round(v * args.scale)), 0) for k, v in sizes.items()}
+            if not sizes:
+                logger.warning("%s: размеры не заданы, сплит пропущен", split)
+                continue
 
-        pairs = build_split(ctx, sizes)
+            ctx = PairContext(
+                split=split,
+                aegis=aegis,
+                harmbench=harmbench,
+                rng=rng,
+                cfg=pairs_cfg,
+                external_variants=external,
+                mining=load_mining(cfg, mining_encoder, split, split_texts(aegis)),
+            )
+            pairs = build_split(ctx, sizes)
         texts = flatten_texts(pairs)
 
         write_jsonl(pairs_path(cfg.paths.processed, name, split, "pairs"), pairs)
@@ -175,6 +210,8 @@ def main() -> None:
             "by_variant": dict(by_variant),
             "n_aegis_records": len(aegis),
             "n_harmbench_seeds": len(harmbench),
+            # примеры подозрительных текстов — только здесь (data/ не в git), в PAIRS.md их нет
+            **({"coverage": asdict(coverage)} if coverage is not None else {}),
         })
         logger.info("%s: %d пар, %d уникальных текстов", split, len(pairs), len(texts))
 
@@ -203,8 +240,8 @@ def main() -> None:
     report_dir = ensure_dir(Path(cfg.paths.results) / "rq2")
     lines = [
         "# RQ2 — обучающие пары\n",
-        f"Набор: `{name}`, seed={cfg.seed}. AEGIS + HarmBench "
-        f"(train_split=`{hb_cfg.get('train_split')}`, heldout=`{hb_cfg.get('heldout_split')}`).\n",
+        f"Набор: `{name}`, seed={cfg.seed}, режим `{mode}`. Датасет `{cfg.dataset.name}`; HarmBench: "
+        f"train_split=`{hb_cfg.get('train_split')}`, heldout=`{hb_cfg.get('heldout_split')}`.\n",
         "## Размеры\n", table.to_markdown(index=False) + "\n",
         "\n`n_texts` — число уникальных текстов в парах; это же множество получает "
         "classification-ветка RQ3, чтобы сравнение объективов было при фиксированных данных.\n",
@@ -216,6 +253,25 @@ def main() -> None:
                 sorted(entry["by_variant"].items()), columns=["pair_type:variant", "n"]
             )
             lines += [f"\n**{entry['split']}**\n", variants.to_markdown(index=False) + "\n"]
+    if mode == "coverage":
+        cov_rows = [{"split": e["split"], "якорей": e["coverage"]["n_anchors"],
+                     "триплетов": e["coverage"]["n_pairs"],
+                     "подозрений на ошибку разметки": e["coverage"]["n_suspect"],
+                     "запасных выборов": e["coverage"]["n_fallback"],
+                     "макс. повторов негатива": e["coverage"]["max_negative_uses"],
+                     "у исходного e5 негатив ближе позитива": round(e["coverage"]["frozen_negative_closer"], 3),
+                     "тексты = весь пул": e["coverage"]["texts_cover_pool"]}
+                    for e in summary["splits"] if "coverage" in e]
+        lines += [
+            "\n## Режим coverage\n",
+            pd.DataFrame(cov_rows).to_markdown(index=False) + "\n",
+            f"\nПараметры: {asdict(cov_cfg)}.\n",
+            "\n«Подозрения» — тексты, которым out-of-fold логистическая регрессия на эмбеддингах "
+            "исходного e5 даёт вероятность противоположного класса выше порога. Они остаются якорями "
+            "с исходной меткой, но не используются как позитивы и негативы. Примеры — в "
+            f"`data/processed/pairs/{name}/summary.json` (тексты могут быть вредоносными, в репозиторий "
+            "не попадают).\n",
+        ]
     (report_dir / "PAIRS.md").write_text("".join(lines), encoding="utf-8")
 
     print("\n=== Размеры пар ===")

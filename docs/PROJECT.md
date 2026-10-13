@@ -406,6 +406,7 @@ TPR@FPR=1%, посчитанные на каждом наборе отдельн
 | [src/eguard/analysis/probe.py](../src/eguard/analysis/probe.py) | `fit_transfer_probe` для LODO |
 | [scripts/08_train_contrastive.py](../scripts/08_train_contrastive.py) | обучение |
 | [scripts/09_eval_lodo.py](../scripts/09_eval_lodo.py) | сравнение hold-out против OOD |
+| [scripts/10_embedding_geometry.py](../scripts/10_embedding_geometry.py) | геометрия дообученных пространств |
 | [configs/rq3_wildguardmix.yaml](../configs/rq3_wildguardmix.yaml) | основной эксперимент (WildGuardMix) |
 | [configs/rq3_contrastive.yaml](../configs/rq3_contrastive.yaml) | эксперимент на AEGIS |
 | [configs/ood_toxicchat.yaml](../configs/ood_toxicchat.yaml) | OOD-набор |
@@ -425,7 +426,7 @@ TPR@FPR=1%, посчитанные на каждом наборе отдельн
 
 ```bash
 make ood-data      # ToxicChat -> data/processed/ (один раз)
-make rq3-wgm       # WildGuardMix: три objective подряд + LODO, ~2–2.5 ч на RTX 5070 Ti
+make rq3-wgm       # WildGuardMix: три objective подряд + LODO + геометрия, ~2–2.5 ч на RTX 5070 Ti
 make lodo-wgm      # только оценка уже обученных прогонов WildGuardMix
 make rq3           # то же на AEGIS, ~50 минут на MPS
 make lodo          # только оценка прогонов AEGIS
@@ -516,6 +517,48 @@ Hold-out: AEGIS test, n=308, harm_rate 0.597. OOD: ToxicChat, n=2853, harm_rate 
 
 ---
 
+### Эксперимент 3: «чистый» WildGuardMix, пять вариантов (подготовлен, не запускался)
+
+Только настоящие тексты WildGuardMix: без HarmBench, без шаблонных парафраз и jailbreak-обёрток.
+Пять вариантов на **одних и тех же 43 025 текстах** с одинаковым числом шагов:
+
+| вариант | лосс | данные |
+|:--|:--|:--|
+| `classification` | CE | тексты |
+| `contrastive` | InfoNCE | триплеты |
+| `joint` | InfoNCE + CE | триплеты + тексты |
+| `supcon` | Supervised Contrastive | тексты, без триплетов |
+| `supcon_joint` | SupCon + CE на одном батче | тексты, без триплетов |
+
+SupCon на текстах: позитивы якоря — все тексты того же класса в батче, температура 0.07.
+
+Триплеты собираются в новом режиме `coverage` ([src/eguard/pairs/coverage.py](../src/eguard/pairs/coverage.py)):
+каждый текст train — якорь ровно одного триплета, поэтому множество текстов в триплетах совпадает
+с train (скрипт обучения это проверяет), а CE и SupCon учатся прямо на train. Исправления
+относительно прежней сборки: подозрительные на ошибку разметки тексты (out-of-fold логистическая
+регрессия на исходном e5, P(другой класс) > 0.9) не бывают позитивами и негативами; майненый
+текст повторяется не больше 3 раз; выбор случайный из 5 ближайших; негатив adversarial-якоря —
+ближайший adversarial другого класса. Итог для train: 18 809 `safe_harm_contrast`, 20 609
+`adversarial_contrast`, 3 607 `benign_twin`; 246 подозрительных текстов, 13 запасных выборов.
+Сводка — [results/wgm_pure/rq2/PAIRS.md](../results/wgm_pure/rq2/PAIRS.md).
+
+Ограничения: детектор ошибок разметки работает на тех же эмбеддингах исходного e5 и не ловит
+то, что для них выглядит своим классом (например «How to make a bomb?» с меткой unharmful,
+P(harm) = 0.21); майнинг статический.
+
+```bash
+make pure-data     # данные -> эмбеддинги e5 -> триплеты (configs/rq2_pairs_wgm_pure.yaml)
+make rq3-pure      # пять вариантов + LODO + геометрия (configs/rq3_wgm_pure.yaml)
+```
+
+Результаты: `results/wgm_pure/rq3/`, чекпоинты: `artifacts/runs_wgm_pure/`, MLflow:
+`eguard-rq3-wgm-pure`.
+
+**Исправлен вход головы при оценке.** Голова обучается на сыром усреднённом векторе, а валидация
+внутри обучения и строки `native_head` в `09_eval_lodo.py` подавали ей нормированный. Теперь
+везде сырой. Основной readout (`probe_logreg`) это не затрагивало; строки `native_head` в
+результатах экспериментов 1 и 2 занижены (на AEGIS CE: OOD TPR@FPR=1% 0.075 → 0.086).
+
 ## RQ4 — не ломает ли safety-separation общую семантическую структуру
 
 **Статус:** заготовлено, не прогонялось.
@@ -568,7 +611,7 @@ readout'ы, потому что обучение на WildGuardMix улучши�
 
 ## Инфраструктура и качество
 
-**Тесты:** 47 штук, запуск `make test`. Покрывают разметку AEGIS, ToxicChat и WildGuardMix,
+**Тесты:** 65 штук, запуск `make test`. Покрывают разметку AEGIS, ToxicChat и WildGuardMix,
 логику сборки пар и отсутствие утечки, лоссы и их градиенты, калибровку порога, обёртку MLflow.
 Сети и GPU не требуют (torch нужен только для `test_training.py`).
 
@@ -728,6 +771,11 @@ artifacts/runs_wildguardmix/{run_name}/checkpoint/  дообученная мо�
 - `direction_analysis(...)` — единое harm-направление, его AUROC, Cohen's d, косинус с PC1.
 - `cluster_analysis(...)` — silhouette, Davies–Bouldin, ARI и NMI для KMeans.
 - `geometry_report(...)` — всё вместе.
+- `pc1_share(x)` — доля разброса на первую главную компоненту: насколько пространство сплющено в
+  одну ось. Используется в RQ3.
+- `class_cosine_summary(x, y)` — средние косинусы между классами и внутри них; считается через
+  средние векторы, без матрицы n×n.
+- `triplet_margins(a, p, n)` — `cos(a, p) − cos(a, n)` для каждого триплета.
 
 **[analysis/probe.py](../src/eguard/analysis/probe.py)** — пробы и метрики. Используется
 и в RQ1, и в RQ3.
@@ -785,6 +833,15 @@ artifacts/runs_wildguardmix/{run_name}/checkpoint/  дообученная мо�
 - `flatten_texts(pairs)` — все тексты из пар с бинарной меткой, без повторов; обучающее
   множество classification-ветки RQ3.
 
+**[pairs/coverage.py](../src/eguard/pairs/coverage.py)** — сборка в режиме `coverage` (только
+настоящие тексты, каждый текст — якорь ровно одного триплета).
+- `CoverageConfig` — параметры из `pairs.coverage` конфига.
+- `out_of_fold_harm_probability(x, y)` — P(harm) от модели, не видевшей этот текст; по ней
+  отмечаются подозрения на ошибку разметки.
+- `NeighbourPicker` — ближайшие кандидаты блоками, случайный из `top_k` подходящих, лимиты
+  повторов отдельно для позитивов и негативов.
+- `build_split_coverage(split, records, x, rng, cfg)` — триплеты и отчёт для одного сплита.
+
 **[pairs/\_\_init\_\_.py](../src/eguard/pairs/__init__.py)**
 - `pairs_dir`, `pairs_path`, `load_pairs` — пути и чтение.
 - `dedupe_pool(records)` — один текст, одна запись.
@@ -807,6 +864,7 @@ artifacts/runs_wildguardmix/{run_name}/checkpoint/  дообученная мо�
 - `build_model(spec, device, with_head)` — сборка и перенос на устройство.
 - `load_checkpoint(path, spec, device)` — поднимает сохранённый чекпоинт вместе с головой.
 - `frozen_teacher(spec, device)` — замороженная копия базовой модели для KL-якоря.
+- `discover_runs(runs_root, names)` — прогоны с сохранённым чекпоинтом; используется в 09 и 10.
 
 **[training/data.py](../src/eguard/training/data.py)**
 - `PairDataset(pairs, pair_types)` — триплеты; `pair_types` это ручка абляции RQ2.
@@ -820,13 +878,17 @@ artifacts/runs_wildguardmix/{run_name}/checkpoint/  дообученная мо�
 - `build_optimizer(...)` — AdamW с раздельным weight decay плюс warmup и косинусное затухание.
 - `contrastive_step(...)` — эмбеддит якорь, позитив, негатив; считает выбранный лосс и
   диагностику (`cos_anchor_positive`, `cos_anchor_negative`, `cos_margin`).
-- `classification_step(...)` — CE поверх головы.
-- `evaluate(...)` — AUROC и TPR@FPR на валидации. Скор берётся из головы, если она есть, иначе
-  из центроидов train, так что чисто contrastive-прогон тоже сравним по тем же числам.
+- `text_losses(embeddings, labels, cfg, logits_fn)` — лосс на батче текстов по объективу: CE,
+  SupCon или их сумма; чистая функция, тестируется без модели. `text_step(...)` — прямой проход
+  и вызов `text_losses`. `classification_step` оставлен для совместимости.
+- `OBJECTIVES`, `needs_pairs(objective)`, `needs_head(objective)` — какие данные и голова нужны
+  каждому из пяти объективов.
+- `evaluate(...)` — AUROC и TPR@FPR на валидации. Скор берётся из головы (на **сыром** векторе,
+  как при обучении), если она есть, иначе из центроидов train.
 - `_next_cycled(iterator, loader)` — следующий батч с перезапуском исчерпанного загрузчика.
   В `joint` два загрузчика разной длины (пар вдвое больше, чем уникальных текстов), а число
   шагов считается по парам; без перезапуска короткий кончался посреди эпохи и ронял обучение.
-- `train(...)` — общий цикл для всех трёх objective, выбор лучшего чекпоинта по TPR@FPR.
+- `train(...)` — общий цикл для всех пяти объективов, выбор лучшего чекпоинта по TPR@FPR.
 
 **[training/tracking.py](../src/eguard/training/tracking.py)** — обёртка над MLflow. Смысл
 обёртки в том, что mlflow не должен быть жёсткой зависимостью: при `enabled: false` или
@@ -837,6 +899,18 @@ artifacts/runs_wildguardmix/{run_name}/checkpoint/  дообученная мо�
 - `start_run(cfg, run_name, tags)` — новый прогон.
 - `resume_run(cfg, run_id)` — дозапись в существующий, чтобы метрики LODO лежали в том же
   прогоне, где училась модель.
+
+### hub.py — публикация на Hugging Face Hub
+
+**[hub.py](../src/eguard/hub.py)** — сборка и проверка выгрузки дообученной модели.
+- `assemble_release(checkpoint_dir, out_dir)` — папка для Hub: веса и токенизатор из чекпоинта,
+  `vocab.txt` и конфиги sentence-transformers от базового e5, голова в safetensors.
+- `head_to_safetensors(head_pt, out)` — голова из pickle в обычный `nn.Linear(384, 2)`.
+- `release_embeddings`, `load_release_head`, `harm_probability` — инференс на чистом
+  transformers, как его будут делать пользователи; голова получает **сырой** вектор.
+- `compare_with_checkpoint(source, checkpoint_dir, spec)` — сверка выгрузки (папки или
+  репозитория) с исходным чекпоинтом.
+- `render_model_card(...)` — README.md с порогом и метриками.
 
 ### viz/ — визуализация
 
@@ -862,7 +936,10 @@ artifacts/runs_wildguardmix/{run_name}/checkpoint/  дообученная мо�
 | [06_error_analysis.py](../scripts/06_error_analysis.py) | hard-пары и ошибки проба в рабочей точке | `hard_pairs` (пары safe/harm с максимальным косинусом — сырьё для hard negatives в RQ2), `probe_errors`, `snippet` |
 | [07_build_pairs.py](../scripts/07_build_pairs.py) | сборка обучающих пар; сид сплита через `zlib.crc32`, behaviors HarmBench, совпадающие с val/test, убираются | `load_mining` (эмбеддинги для benign twins, урезанные тем же фильтром, что и пулы) |
 | [08_train_contrastive.py](../scripts/08_train_contrastive.py) | дообучение с трекингом | `build_train_config` (склейка конфига с CLI-переопределениями) |
-| [09_eval_lodo.py](../scripts/09_eval_lodo.py) | сравнение hold-out против OOD | `discover_runs`, `embed_all`, `centroid_scores`, `rows_for_readout` |
+| [09_eval_lodo.py](../scripts/09_eval_lodo.py) | сравнение hold-out против OOD | `embed_all`, `centroid_scores`, `rows_for_readout` |
+| [10_embedding_geometry.py](../scripts/10_embedding_geometry.py) | как objective перестроил пространство: порядок в отложенных триплетах и геометрия (главная компонента, косинусы классов) | `sample_records`, `triplet_rows` |
+| [11_export_hf.py](../scripts/11_export_hf.py) | собрать дообученную модель в папку для Hugging Face Hub: файлы, голова в safetensors, порог и метрики, README; сверка с чекпоинтом | `head_scores`, `evaluate_head` |
+| [12_push_to_hub.py](../scripts/12_push_to_hub.py) | загрузить собранную папку на Hub (по умолчанию в приватный репозиторий) и сверить скачанную модель с чекпоинтом | `ensure_login` |
 | [run_rq1.sh](../scripts/run_rq1.sh) | весь RQ1 одной командой | — |
 
 Файлы `results/rq1/errors/` содержат фрагменты исходных текстов AEGIS, в том числе
@@ -877,6 +954,8 @@ artifacts/runs_wildguardmix/{run_name}/checkpoint/  дообученная мо�
 | [rq2_pairs_wildguardmix.yaml](../configs/rq2_pairs_wildguardmix.yaml) | RQ2 на WildGuardMix: датасет, энкодер для майнинга, параметры и размеры пар |
 | [rq3_contrastive.yaml](../configs/rq3_contrastive.yaml) | RQ3 на AEGIS: objective, лосс, гиперпараметры, MLflow |
 | [rq3_wildguardmix.yaml](../configs/rq3_wildguardmix.yaml) | RQ3 на WildGuardMix: то же + gradient checkpointing, отдельные папки результатов и эксперимент MLflow |
+| [rq2_pairs_wgm_pure.yaml](../configs/rq2_pairs_wgm_pure.yaml) | «чистый» WildGuardMix: данные, эмбеддинги, триплеты в режиме `coverage` |
+| [rq3_wgm_pure.yaml](../configs/rq3_wgm_pure.yaml) | пять вариантов обучения на «чистом» WildGuardMix, `text_source: dataset` |
 | [ood_toxicchat.yaml](../configs/ood_toxicchat.yaml) | OOD-набор; `val_fraction: 0` — на ToxicChat ничего не подбирается |
 
 ## tests
@@ -887,6 +966,8 @@ artifacts/runs_wildguardmix/{run_name}/checkpoint/  дообученная мо�
 | [test_pairs.py](../tests/test_pairs.py) | согласованность меток в парах, парафразы и внешние варианты, обёрнутые safe-негативы в jailbreak, майнинг ближайшего safe, дедупликация, `flatten_texts` |
 | [test_training.py](../tests/test_training.py) | лоссы и конечность градиентов, регресс на NaN в SupCon, KL против самого себя, `flatten_params`, no-op трекер, регресс на `StopIteration` в joint |
 | [test_toxicchat.py](../tests/test_toxicchat.py) | метки и фильтры ToxicChat, обучение transfer-проба только на train, перенос порога с val на сдвинутый набор |
+| [test_coverage.py](../tests/test_coverage.py) | режим `coverage`: каждый текст — якорь один раз, роли и типы, лимиты повторов, подозрительные тексты не бывают позитивами и негативами, детерминизм; лоссы SupCon и SupCon + CE |
+| [test_hub.py](../tests/test_hub.py) | сборка выгрузки без сети: состав файлов, конвертация головы без потери весов, карточка модели |
 | [test_wildguardmix.py](../tests/test_wildguardmix.py) | метки, дедупликация промтов и конфликты, фильтр adversarial, разбор согласия, стратифицированный срез, структура `adversarial_contrast`, режимы `jailbreak_seeds` |
 
 ## Makefile
@@ -901,8 +982,14 @@ pairs          обучающие пары (AEGIS)
 wgm-pairs      WildGuardMix: данные -> эмбеддинги для майнинга -> пары
 rq3            три objective подряд + LODO (AEGIS)
 lodo           только оценка обученных прогонов (AEGIS)
-rq3-wgm        три objective подряд + LODO (WildGuardMix)
+rq3-wgm        три objective подряд + LODO + геометрия (WildGuardMix)
+pure-data      «чистый» WildGuardMix: данные -> эмбеддинги -> триплеты (coverage)
+rq3-pure       пять вариантов + LODO + геометрия на «чистом» WildGuardMix
+lodo-pure      только оценка (чистый WildGuardMix)
+geometry-pure  только геометрия (чистый WildGuardMix)
 lodo-wgm       только оценка обученных прогонов (WildGuardMix)
+geometry-wgm   геометрия дообученных пространств (WildGuardMix)
+export-hf      собрать модель для Hugging Face Hub (RUN=..., REPO=...)
 rq3-ablation   абляция по типам пар
 mlflow         UI трекинга
 test           pytest

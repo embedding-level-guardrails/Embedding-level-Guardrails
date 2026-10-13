@@ -141,3 +141,12 @@ def test_joint_step_count_uses_pairs_and_cycles_texts():
     for _ in range(6):                   # имитируем 6 шагов по парам при 2 батчах текстов
         batch, iterator = _next_cycled(iterator, text_loader)
         assert len(batch["text"]) == 4
+
+
+def test_discover_runs_keeps_only_dirs_with_checkpoint(tmp_path):
+    from eguard.training import discover_runs
+
+    (tmp_path / "run-a" / "checkpoint").mkdir(parents=True)
+    (tmp_path / "run-b").mkdir()                             # без checkpoint/ — пропустить
+    assert [name for name, _ in discover_runs(tmp_path)] == ["run-a"]
+    assert [name for name, _ in discover_runs(tmp_path, ["run-a", "run-b"])] == ["run-a"]

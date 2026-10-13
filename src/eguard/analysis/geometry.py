@@ -5,6 +5,10 @@
     (silhouette + KMeans/ARI, а не только средний косинус);
   * насколько сигнал одномерен — то есть существует ли единое «harm-направление»
     (проекция на разницу центроидов против полноразмерного линейного пробa).
+
+Функции в конце файла (`pc1_share`, `class_cosine_summary`, `triplet_margins`) нужны
+RQ3: они сравнивают, как разные objective перестраивают пространство
+(scripts/10_embedding_geometry.py).
 """
 from __future__ import annotations
 
@@ -93,3 +97,47 @@ def geometry_report(
         **direction_analysis(x_train, y_train, x_eval, y_eval),
         **cluster_analysis(x_eval, y_eval, k_values, seed=seed),
     }
+
+
+# --- Сравнение дообученных пространств (RQ3) ------------------------------------
+
+def pc1_share(x: np.ndarray) -> float:
+    """Доля разброса векторов, приходящаяся на первую главную компоненту.
+
+    Мера «сплющенности» пространства: у исходного e5 ~7%, после CE-дообучения ~65% —
+    почти всё пространство выстраивается вдоль одной оси «вредно ↔ безопасно».
+    """
+    return float(PCA(n_components=1).fit(x).explained_variance_ratio_[0])
+
+
+def _mean_pairwise_cosine(v: np.ndarray, w: np.ndarray | None = None) -> float:
+    """Средний косинус по всем парам без построения матрицы n×n.
+
+    Для L2-нормированных векторов среднее u·v по парам из двух множеств равно
+    скалярному произведению их средних; внутри одного множества диагональ
+    (u·u = 1) вычитается: (‖Σv‖² − n) / (n(n − 1)).
+    """
+    if w is not None:
+        return float(v.mean(0) @ w.mean(0))
+    n = len(v)
+    if n < 2:
+        return float("nan")
+    total = v.sum(0)
+    return float((total @ total - n) / (n * (n - 1)))
+
+
+def class_cosine_summary(x: np.ndarray, y: np.ndarray) -> dict[str, float]:
+    """Средние косинусы между классами и внутри каждого класса."""
+    v = l2_normalize(x.astype(np.float64))
+    safe, harm = v[y == 0], v[y == 1]
+    return {
+        "cos_safe_harm": _mean_pairwise_cosine(safe, harm),
+        "cos_within_safe": _mean_pairwise_cosine(safe),
+        "cos_within_harm": _mean_pairwise_cosine(harm),
+    }
+
+
+def triplet_margins(anchor: np.ndarray, positive: np.ndarray, negative: np.ndarray) -> np.ndarray:
+    """cos(a, p) − cos(a, n) для каждого триплета; > 0 значит, что порядок правильный."""
+    a, p, n = (l2_normalize(m.astype(np.float64)) for m in (anchor, positive, negative))
+    return (a * p).sum(1) - (a * n).sum(1)

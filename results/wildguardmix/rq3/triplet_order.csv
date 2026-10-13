@@ -1,0 +1,25 @@
+model,pair_type,n,frac_positive_closer,mean_margin,caveat
+e5-small-v2-frozen,adversarial_contrast,799,0.1176,-0.0452,
+e5-small-v2-frozen,benign_twin,300,0.8367,0.0165,майнился по близости у исходного e5 — сравнение смещено в его пользу
+e5-small-v2-frozen,jailbreak_variant,500,0.894,0.1204,
+e5-small-v2-frozen,paraphrase,434,1.0,0.186,слишком лёгкая проверка — у всех моделей около 100%
+e5-small-v2-frozen,safe_harm_contrast,1200,0.5983,0.0114,
+e5-small-v2-frozen,all,3233,0.6013,0.0382,
+wgm-classification,adversarial_contrast,799,0.7046,0.3532,
+wgm-classification,benign_twin,300,0.7533,0.4598,майнился по близости у исходного e5 — сравнение смещено в его пользу
+wgm-classification,jailbreak_variant,500,0.934,0.885,
+wgm-classification,paraphrase,434,1.0,1.0149,слишком лёгкая проверка — у всех моделей около 100%
+wgm-classification,safe_harm_contrast,1200,0.795,0.5933,
+wgm-classification,all,3233,0.8178,0.6233,
+wgm-contrastive,adversarial_contrast,799,0.8661,0.1302,
+wgm-contrastive,benign_twin,300,0.77,0.1244,майнился по близости у исходного e5 — сравнение смещено в его пользу
+wgm-contrastive,jailbreak_variant,500,0.958,0.4618,
+wgm-contrastive,paraphrase,434,1.0,0.5723,слишком лёгкая проверка — у всех моделей около 100%
+wgm-contrastive,safe_harm_contrast,1200,0.7808,0.115,
+wgm-contrastive,all,3233,0.8577,0.2346,
+wgm-joint,adversarial_contrast,799,0.8623,0.1709,
+wgm-joint,benign_twin,300,0.78,0.1494,майнился по близости у исходного e5 — сравнение смещено в его пользу
+wgm-joint,jailbreak_variant,500,0.95,0.4865,
+wgm-joint,paraphrase,434,1.0,0.6128,слишком лёгкая проверка — у всех моделей около 100%
+wgm-joint,safe_harm_contrast,1200,0.8117,0.1712,
+wgm-joint,all,3233,0.8679,0.2771,

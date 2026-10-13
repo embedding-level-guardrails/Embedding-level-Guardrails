@@ -1,0 +1,59 @@
+# «Чистый» WildGuardMix: только настоящие тексты датасета, без HarmBench и без
+# шаблонных парафраз и jailbreak-обёрток. Один конфиг на три шага:
+#   python scripts/00_prepare_data.py --config configs/rq2_pairs_wgm_pure.yaml
+#   python scripts/01_embed.py        --config configs/rq2_pairs_wgm_pure.yaml
+#   python scripts/07_build_pairs.py  --config configs/rq2_pairs_wgm_pure.yaml
+# Датасет gated: нужен принятый запрос доступа и HF_TOKEN (или hf auth login).
+# Шаги 00 и 01 — те же, что для configs/rq2_pairs_wildguardmix.yaml: если они уже
+# выполнены, их результаты переиспользуются (01 не пересчитывает готовые эмбеддинги).
+seed: 42
+
+paths:
+  processed: data/processed
+  embeddings: artifacts/embeddings
+  results: results/wgm_pure
+  figures: results/wgm_pure/figures
+
+dataset:
+  name: wildguardmix
+  hf_id: allenai/wildguardmix
+  adversarial_filter: all
+  min_chars: 3
+  max_chars: 8000
+  val_fraction: 0.1
+  max_records_per_split: null
+
+# Эмбеддинги исходного e5 — для поиска ближайших и для поиска ошибок разметки.
+encoders:
+  - key: e5-small-v2
+    hf_id: intfloat/e5-small-v2
+    pooling: mean
+    max_length: 512
+    prefix: "query: "
+
+embed:
+  batch_size: 64
+  device: auto
+  layer: -1
+
+pairs:
+  name: wildguardmix_pure_v1
+  # coverage: каждый текст датасета — якорь ровно одного триплета (src/eguard/pairs/coverage.py)
+  mode: coverage
+
+  harmbench:
+    train_split: null      # без HarmBench
+    heldout_split: null
+
+  mining:
+    encoder: e5-small-v2
+
+  coverage:
+    benign_twin_fraction: 0.3   # доля vanilla-вредных якорей, идущих в benign_twin
+    top_k: 5                    # случайный из 5 ближайших подходящих, а не самый ближайший
+    search_depth: 100           # сколько ближайших просматривать, если первые заняты лимитом
+    max_negative_uses: 3        # текст — майненый негатив не больше 3 раз
+    max_positive_uses: 3        # и майненый позитив (benign_twin) — тоже
+    noise_threshold: 0.9        # P(другой класс) > 0.9 — подозрение на ошибку разметки
+    noise_folds: 5
+    noise_c: 1.0

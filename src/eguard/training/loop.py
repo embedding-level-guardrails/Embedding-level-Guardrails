@@ -1,14 +1,19 @@
 """Цикл дообучения энкодера для RQ3.
 
-Три объектива под одним циклом:
-  contrastive    — только contrastive-лосс на триплетах
-  classification — только CE поверх линейной головы (это и есть базлайн RQ3)
-  joint          — contrastive + CE с весом
+Пять объективов под одним циклом. Три на триплетах (pairs_*.jsonl):
+  contrastive    — только InfoNCE на триплетах
+  classification — только CE поверх линейной головы (базлайн, триплеты не нужны)
+  joint          — InfoNCE на триплетах + CE на текстах
+
+И два на текстах с метками, без триплетов:
+  supcon         — только Supervised Contrastive: позитивы — все примеры того же
+                   класса в батче
+  supcon_joint   — SupCon + CE на одном и том же батче текстов
 
 Валидация считается тем, что реально важно для guardrail: AUROC и TPR@FPR=1%.
 Скор берётся из головы, если она есть, иначе — расстояние до центроидов (это же
-прообраз distance-based guardrail из RQ5), так что чисто contrastive-прогон тоже
-сравним по тем же числам. Лучший чекпоинт выбирается по TPR@FPR, а не по лоссу:
+прообраз distance-based guardrail из RQ5), так что прогоны без головы тоже
+сравнимы по тем же числам. Лучший чекпоинт выбирается по TPR@FPR, а не по лоссу:
 средний лосс не отражает рабочую точку с низким FPR.
 """
 from __future__ import annotations
@@ -33,11 +38,28 @@ from .model import GuardEncoder
 logger = get_logger(__name__)
 
 
+# Какие данные и какие части модели нужны каждому объективу.
+OBJECTIVES = ("contrastive", "classification", "joint", "supcon", "supcon_joint")
+PAIR_OBJECTIVES = frozenset({"contrastive", "joint"})                     # нужны триплеты
+TEXT_OBJECTIVES = frozenset({"classification", "joint", "supcon", "supcon_joint"})  # нужны тексты
+HEAD_OBJECTIVES = frozenset({"classification", "joint", "supcon_joint"})   # нужна голова и CE
+SUPCON_OBJECTIVES = frozenset({"supcon", "supcon_joint"})                 # SupCon на текстах
+
+
+def needs_pairs(objective: str) -> bool:
+    return objective in PAIR_OBJECTIVES
+
+
+def needs_head(objective: str) -> bool:
+    return objective in HEAD_OBJECTIVES
+
+
 @dataclass
 class TrainConfig:
-    objective: str = "contrastive"          # contrastive | classification | joint
-    loss: str = "info_nce"                  # info_nce | supervised_contrastive | triplet_margin
-    temperature: float = 0.05
+    objective: str = "contrastive"          # см. OBJECTIVES
+    loss: str = "info_nce"                  # лосс на триплетах: info_nce | supervised_contrastive | triplet_margin
+    temperature: float = 0.05               # температура InfoNCE
+    supcon_temperature: float = 0.07        # температура SupCon на текстах (как в статье SupCon)
     margin: float = 0.2
     epochs: int = 3
     batch_size: int = 32
@@ -47,8 +69,8 @@ class TrainConfig:
     warmup_ratio: float = 0.1
     max_grad_norm: float = 1.0
     grad_accum_steps: int = 1
-    ce_weight: float = 1.0                  # вес CE в joint
-    contrastive_weight: float = 1.0         # вес contrastive в joint
+    ce_weight: float = 1.0                  # вес CE в joint и supcon_joint
+    contrastive_weight: float = 1.0         # вес InfoNCE (joint) или SupCon (supcon_joint)
     kl_weight: float = 0.0                  # >0 включает якорь к базовой модели (RQ4)
     kl_temperature: float = 0.1
     eval_every: int = 200                   # в шагах оптимизатора; 0 = только по эпохам
@@ -133,8 +155,51 @@ def contrastive_step(model: GuardEncoder, batch: dict, device: torch.device,
     return loss, stats
 
 
+def text_losses(embeddings: torch.Tensor, labels: torch.Tensor, cfg: TrainConfig,
+                logits_fn=None) -> tuple[torch.Tensor, dict[str, float]]:
+    """Лосс на батче текстов с метками: CE, SupCon или их сумма — по объективу.
+
+    Голова получает СЫРОЙ усреднённый вектор (без L2-нормировки); SupCon нормирует
+    сам. Чистая функция от эмбеддингов, чтобы её можно было тестировать без модели.
+    """
+    loss = torch.zeros((), device=embeddings.device)
+    stats: dict[str, float] = {}
+
+    if cfg.objective in HEAD_OBJECTIVES:
+        ce = F.cross_entropy(logits_fn(embeddings), labels)
+        loss = loss + cfg.ce_weight * ce
+        stats["loss_ce"] = float(ce.detach())
+
+    if cfg.objective in SUPCON_OBJECTIVES:
+        supcon = supervised_contrastive(embeddings, labels, temperature=cfg.supcon_temperature)
+        weight = cfg.contrastive_weight if cfg.objective == "supcon_joint" else 1.0
+        loss = loss + weight * supcon
+        stats["loss_supcon"] = float(supcon.detach())
+        # диагностика: насколько примеры одного класса в батче ближе, чем разных
+        with torch.no_grad():
+            z = F.normalize(embeddings, dim=-1)
+            sim = z @ z.T
+            same = labels.view(-1, 1).eq(labels.view(1, -1))
+            off = ~torch.eye(len(labels), dtype=torch.bool, device=embeddings.device)
+            if (same & off).any() and (~same).any():
+                stats["cos_same_class"] = float(sim[same & off].mean())
+                stats["cos_other_class"] = float(sim[~same].mean())
+                stats["cos_margin"] = stats["cos_same_class"] - stats["cos_other_class"]
+    return loss, stats
+
+
+def text_step(model: GuardEncoder, texts: list[str], labels: torch.Tensor, device: torch.device,
+              cfg: TrainConfig) -> tuple[torch.Tensor, dict[str, float], torch.Tensor]:
+    """Один прямой проход по батчу текстов и лосс по объективу."""
+    embeddings = _embed_batch(model, texts, device)
+    logits_fn = model.logits if cfg.objective in HEAD_OBJECTIVES else None
+    loss, stats = text_losses(embeddings, labels.to(device), cfg, logits_fn)
+    return loss, stats, embeddings
+
+
 def classification_step(model: GuardEncoder, texts: list[str], labels: torch.Tensor,
                         device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
+    """CE поверх головы. Оставлено для совместимости; цикл использует text_step."""
     embeddings = _embed_batch(model, texts, device)
     logits = model.logits(embeddings)
     return F.cross_entropy(logits, labels.to(device)), embeddings
@@ -151,16 +216,19 @@ def evaluate(model: GuardEncoder, texts: list[str], y: np.ndarray, device: torch
     из RQ5, чтобы contrastive-прогон мерился той же линейкой.
     """
     model.eval()
-    embeddings = model.encode_texts(texts, device, batch_size=cfg.eval_batch_size)
+    # Голова обучается на СЫРОМ усреднённом векторе, поэтому и оценивается на нём.
+    # Раньше сюда шёл нормированный вектор: логиты сжимались в ~8 раз, а строки
+    # native_head в отчётах были занижены.
+    raw = model.encode_texts(texts, device, batch_size=cfg.eval_batch_size, normalize=False)
 
     if model.head is not None:
-        scores = torch.softmax(model.logits(embeddings.to(device)).float(), dim=-1)[:, 1].cpu().numpy()
+        scores = torch.softmax(model.logits(raw.to(device)).float(), dim=-1)[:, 1].cpu().numpy()
         threshold = 0.5
     elif train_embeddings is not None:
         x_train, y_train = train_embeddings
         mu_safe = l2_normalize(x_train[y_train == 0].mean(0)[None])[0]
         mu_harm = l2_normalize(x_train[y_train == 1].mean(0)[None])[0]
-        vectors = embeddings.cpu().numpy()
+        vectors = l2_normalize(raw.cpu().numpy().astype(np.float64))
         scores = vectors @ mu_harm - vectors @ mu_safe
         threshold = 0.0
     else:
@@ -183,10 +251,12 @@ def train(
 ) -> dict[str, Any]:
     """Общий цикл. Возвращает историю и лучшие метрики."""
     torch.manual_seed(cfg.seed)
-    use_contrastive = cfg.objective in ("contrastive", "joint")
-    use_classification = cfg.objective in ("classification", "joint")
+    if cfg.objective not in OBJECTIVES:
+        raise ValueError(f"Unknown objective {cfg.objective!r}. Available: {OBJECTIVES}")
+    use_contrastive = cfg.objective in PAIR_OBJECTIVES
+    use_texts = cfg.objective in TEXT_OBJECTIVES
 
-    if use_classification and model.head is None:
+    if needs_head(cfg.objective) and model.head is None:
         raise ValueError(f"objective={cfg.objective} требует модель с головой (with_head=True)")
 
     if use_contrastive:
@@ -197,7 +267,7 @@ def train(
     else:
         pair_loader = None
 
-    if use_classification:
+    if use_texts:
         text_loader = DataLoader(
             TextDataset(texts_train), batch_size=cfg.batch_size, shuffle=True,
             collate_fn=collate_texts, drop_last=True,
@@ -255,11 +325,11 @@ def train(
 
             if text_iter is not None:
                 text_batch, text_iter = _next_cycled(text_iter, text_loader)
-                ce_loss, embeddings = classification_step(
-                    model, text_batch["text"], text_batch["label"], device
+                text_loss, text_stats, embeddings = text_step(
+                    model, text_batch["text"], text_batch["label"], device, cfg
                 )
-                loss = loss + cfg.ce_weight * ce_loss
-                stats["loss_ce"] = float(ce_loss.detach())
+                loss = loss + text_loss
+                stats.update(text_stats)
 
                 if teacher is not None and cfg.kl_weight > 0:
                     with torch.no_grad():

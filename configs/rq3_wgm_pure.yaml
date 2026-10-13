@@ -1,0 +1,62 @@
+# RQ3 на «чистом» WildGuardMix: пять вариантов обучения на одних и тех же текстах.
+#   classification — CE с линейной головой
+#   contrastive    — InfoNCE на триплетах из configs/rq2_pairs_wgm_pure.yaml
+#   joint          — InfoNCE + CE
+#   supcon         — Supervised Contrastive на текстах, без триплетов
+#   supcon_joint   — SupCon + CE на одном батче текстов
+# text_source: dataset — CE и SupCon учатся на train WildGuardMix напрямую. Триплеты
+# собраны в режиме coverage, поэтому их тексты — то же самое множество (скрипт
+# обучения это проверяет), и число шагов у всех вариантов одинаковое.
+# Отдельные output_dir, папка результатов и эксперимент MLflow.
+seed: 42
+paths:
+  processed: data/processed
+  embeddings: artifacts/embeddings
+  results: results/wgm_pure
+  figures: results/wgm_pure/figures
+dataset:
+  name: wildguardmix
+  hf_id: allenai/wildguardmix
+  adversarial_filter: all
+  min_chars: 3
+  max_chars: 8000
+  val_fraction: 0.1
+  max_records_per_split: null
+encoders:
+- key: e5-small-v2
+  hf_id: intfloat/e5-small-v2
+  pooling: mean
+  max_length: 512
+  prefix: 'query: '
+pairs:
+  name: wildguardmix_pure_v1
+  types: []
+training:
+  objective: contrastive
+  loss: info_nce
+  temperature: 0.05
+  margin: 0.2
+  epochs: 2
+  batch_size: 32
+  eval_batch_size: 64
+  lr: 2.0e-05
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  max_grad_norm: 1.0
+  grad_accum_steps: 1
+  ce_weight: 1.0
+  contrastive_weight: 1.0
+  kl_weight: 0.0
+  kl_temperature: 0.1
+  eval_every: 200
+  log_every: 20
+  target_fpr: 0.01
+  gradient_checkpointing: true
+  device: auto
+  output_dir: artifacts/runs_wgm_pure
+  supcon_temperature: 0.07
+  text_source: dataset
+mlflow:
+  enabled: true
+  tracking_uri: sqlite:///mlflow.db
+  experiment: eguard-rq3-wgm-pure

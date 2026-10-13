@@ -34,30 +34,21 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from eguard.analysis.probe import binary_metrics, bootstrap_ci, fit_transfer_probe, tpr_at_fpr  # noqa: E402
 from eguard.config import load_config  # noqa: E402
 from eguard.data import load_split  # noqa: E402
-from eguard.training import load_checkpoint, resume_run  # noqa: E402
+from eguard.training import discover_runs, load_checkpoint, resume_run  # noqa: E402
 from eguard.training.data import texts_and_labels  # noqa: E402
 from eguard.utils import ensure_dir, get_logger, l2_normalize, save_json, set_seed  # noqa: E402
 
 logger = get_logger("eval_lodo")
 
 
-def discover_runs(runs_root: Path, names: list[str] | None) -> list[tuple[str, Path]]:
-    """(имя, каталог) для каждого прогона с сохранённым чекпоинтом."""
-    if names:
-        candidates = [runs_root / n for n in names]
-    else:
-        candidates = sorted(p for p in runs_root.glob("*") if p.is_dir())
-    found = []
-    for path in candidates:
-        if (path / "checkpoint").exists():
-            found.append((path.name, path))
-        else:
-            logger.warning("%s: нет checkpoint/, пропускаю", path)
-    return found
-
-
 def embed_all(model, device, sets: dict[str, list[str]], batch_size: int) -> dict[str, np.ndarray]:
-    return {name: model.encode_texts(texts, device, batch_size=batch_size).cpu().numpy()
+    """СЫРЫЕ усреднённые векторы (без L2-нормировки).
+
+    Голова обучалась на сырых векторах и получает их как есть; логистический проб и
+    центроиды нормируют векторы сами. Раньше сюда шли нормированные векторы, и строки
+    native_head были занижены: логиты головы сжимались примерно в 8 раз.
+    """
+    return {name: model.encode_texts(texts, device, batch_size=batch_size, normalize=False).cpu().numpy()
             for name, texts in sets.items()}
 
 
