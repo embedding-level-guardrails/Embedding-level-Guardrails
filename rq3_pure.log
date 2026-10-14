@@ -1,0 +1,1049 @@
+nohup: ignoring input
+python scripts/08_train_contrastive.py --config configs/rq3_wgm_pure.yaml --objective classification --run-name pure-classification
+2026-10-14 01:43:20,065 | INFO    | train_contrastive | e5-small-v2 | classification | триплетов=0, текстов=43025 (dataset), val=4781
+2026-10-14 01:43:23,818 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 01:43:23,866 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+2026-10-14 01:43:24,014 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 01:43:24,065 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/tokenizer_config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Ftokenizer_config.json=&etag=%228046d4d4aff4529a10e0ad47043bdabd6304fb58%22 "HTTP/1.1 200 OK"
+2026-10-14 01:43:24,210 | INFO    | httpx | HTTP Request: GET https://huggingface.co/api/models/intfloat/e5-small-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-10-14 01:43:24,348 | INFO    | httpx | HTTP Request: GET https://huggingface.co/api/models/intfloat/e5-small-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-14 01:43:24,511 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 01:43:24,536 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights:  58%|█████▊    | 116/199 [00:00<00:00, 1151.08it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 1498.51it/s]
+2026-10-14 01:43:24,964 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 01:43:24,989 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+2026-10-14 01:43:25,411 | INFO    | train_contrastive | Устройство: cuda, голова: True, KL-якорь: False, gradient checkpointing: True
+2026/10/14 01:43:26 INFO mlflow.tracking.fluent: Experiment with name 'eguard-rq3-wgm-pure' does not exist. Creating a new experiment.
+2026-10-14 01:43:26,435 | INFO    | eguard.training.tracking | MLflow run c46b60f29bff445485a2b72aee07205f (sqlite:///mlflow.db, experiment=eguard-rq3-wgm-pure)
+[transformers] `use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`.
+2026-10-14 01:43:32,943 | INFO    | eguard.training.loop | эпоха 0 шаг 20 | loss=0.6902
+2026-10-14 01:43:37,093 | INFO    | eguard.training.loop | эпоха 0 шаг 40 | loss=0.7227
+2026-10-14 01:43:41,466 | INFO    | eguard.training.loop | эпоха 0 шаг 60 | loss=0.6668
+2026-10-14 01:43:45,114 | INFO    | eguard.training.loop | эпоха 0 шаг 80 | loss=0.6140
+2026-10-14 01:43:49,196 | INFO    | eguard.training.loop | эпоха 0 шаг 100 | loss=0.5830
+2026-10-14 01:43:53,449 | INFO    | eguard.training.loop | эпоха 0 шаг 120 | loss=0.5503
+2026-10-14 01:43:57,877 | INFO    | eguard.training.loop | эпоха 0 шаг 140 | loss=0.4890
+2026-10-14 01:44:03,313 | INFO    | eguard.training.loop | эпоха 0 шаг 160 | loss=0.4474
+2026-10-14 01:44:06,861 | INFO    | eguard.training.loop | эпоха 0 шаг 180 | loss=0.5626
+2026-10-14 01:44:10,720 | INFO    | eguard.training.loop | эпоха 0 шаг 200 | loss=0.4192
+2026-10-14 01:44:18,595 | INFO    | eguard.training.loop | шаг 200 | val AUROC=0.9249 TPR@FPR=0.4746 FPR=0.0907 FNR=0.2355
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.37it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.37it/s]
+2026-10-14 01:44:18,836 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-classification/checkpoint
+2026-10-14 01:44:22,725 | INFO    | eguard.training.loop | эпоха 0 шаг 220 | loss=0.4084
+2026-10-14 01:44:26,670 | INFO    | eguard.training.loop | эпоха 0 шаг 240 | loss=0.2703
+2026-10-14 01:44:30,516 | INFO    | eguard.training.loop | эпоха 0 шаг 260 | loss=0.3927
+2026-10-14 01:44:35,899 | INFO    | eguard.training.loop | эпоха 0 шаг 280 | loss=0.4055
+2026-10-14 01:44:39,660 | INFO    | eguard.training.loop | эпоха 0 шаг 300 | loss=0.3726
+2026-10-14 01:44:43,832 | INFO    | eguard.training.loop | эпоха 0 шаг 320 | loss=0.3304
+2026-10-14 01:44:48,010 | INFO    | eguard.training.loop | эпоха 0 шаг 340 | loss=0.3684
+2026-10-14 01:44:51,767 | INFO    | eguard.training.loop | эпоха 0 шаг 360 | loss=0.2842
+2026-10-14 01:44:55,841 | INFO    | eguard.training.loop | эпоха 0 шаг 380 | loss=0.2572
+2026-10-14 01:45:00,104 | INFO    | eguard.training.loop | эпоха 0 шаг 400 | loss=0.3332
+2026-10-14 01:45:07,761 | INFO    | eguard.training.loop | шаг 400 | val AUROC=0.9549 TPR@FPR=0.6119 FPR=0.0963 FNR=0.1248
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:01<00:00,  1.46s/it]Writing model shards: 100%|██████████| 1/1 [00:01<00:00,  1.46s/it]
+2026-10-14 01:45:09,235 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-classification/checkpoint
+2026-10-14 01:45:13,275 | INFO    | eguard.training.loop | эпоха 0 шаг 420 | loss=0.3373
+2026-10-14 01:45:17,172 | INFO    | eguard.training.loop | эпоха 0 шаг 440 | loss=0.4966
+2026-10-14 01:45:21,053 | INFO    | eguard.training.loop | эпоха 0 шаг 460 | loss=0.2744
+2026-10-14 01:45:25,147 | INFO    | eguard.training.loop | эпоха 0 шаг 480 | loss=0.2360
+2026-10-14 01:45:29,369 | INFO    | eguard.training.loop | эпоха 0 шаг 500 | loss=0.3732
+2026-10-14 01:45:33,357 | INFO    | eguard.training.loop | эпоха 0 шаг 520 | loss=0.4831
+2026-10-14 01:45:37,512 | INFO    | eguard.training.loop | эпоха 0 шаг 540 | loss=0.0960
+2026-10-14 01:45:43,084 | INFO    | eguard.training.loop | эпоха 0 шаг 560 | loss=0.2202
+2026-10-14 01:45:47,464 | INFO    | eguard.training.loop | эпоха 0 шаг 580 | loss=0.2847
+2026-10-14 01:45:51,407 | INFO    | eguard.training.loop | эпоха 0 шаг 600 | loss=0.2943
+2026-10-14 01:45:58,772 | INFO    | eguard.training.loop | шаг 600 | val AUROC=0.9645 TPR@FPR=0.6539 FPR=0.0798 FNR=0.1127
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.34it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.34it/s]
+2026-10-14 01:45:58,967 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-classification/checkpoint
+2026-10-14 01:46:02,546 | INFO    | eguard.training.loop | эпоха 0 шаг 620 | loss=0.1932
+2026-10-14 01:46:06,812 | INFO    | eguard.training.loop | эпоха 0 шаг 640 | loss=0.2747
+2026-10-14 01:46:10,703 | INFO    | eguard.training.loop | эпоха 0 шаг 660 | loss=0.2074
+2026-10-14 01:46:14,777 | INFO    | eguard.training.loop | эпоха 0 шаг 680 | loss=0.2368
+2026-10-14 01:46:20,268 | INFO    | eguard.training.loop | эпоха 0 шаг 700 | loss=0.2087
+2026-10-14 01:46:24,311 | INFO    | eguard.training.loop | эпоха 0 шаг 720 | loss=0.3182
+2026-10-14 01:46:28,226 | INFO    | eguard.training.loop | эпоха 0 шаг 740 | loss=0.1049
+2026-10-14 01:46:32,052 | INFO    | eguard.training.loop | эпоха 0 шаг 760 | loss=0.2835
+2026-10-14 01:46:36,191 | INFO    | eguard.training.loop | эпоха 0 шаг 780 | loss=0.1932
+2026-10-14 01:46:40,576 | INFO    | eguard.training.loop | эпоха 0 шаг 800 | loss=0.1937
+2026-10-14 01:46:48,157 | INFO    | eguard.training.loop | шаг 800 | val AUROC=0.9679 TPR@FPR=0.6414 FPR=0.0764 FNR=0.1042
+2026-10-14 01:46:53,739 | INFO    | eguard.training.loop | эпоха 0 шаг 820 | loss=0.3083
+2026-10-14 01:46:57,979 | INFO    | eguard.training.loop | эпоха 0 шаг 840 | loss=0.1452
+2026-10-14 01:47:02,059 | INFO    | eguard.training.loop | эпоха 0 шаг 860 | loss=0.1001
+2026-10-14 01:47:05,772 | INFO    | eguard.training.loop | эпоха 0 шаг 880 | loss=0.2370
+2026-10-14 01:47:09,582 | INFO    | eguard.training.loop | эпоха 0 шаг 900 | loss=0.1211
+2026-10-14 01:47:13,385 | INFO    | eguard.training.loop | эпоха 0 шаг 920 | loss=0.1383
+2026-10-14 01:47:17,486 | INFO    | eguard.training.loop | эпоха 0 шаг 940 | loss=0.2829
+2026-10-14 01:47:21,682 | INFO    | eguard.training.loop | эпоха 0 шаг 960 | loss=0.1265
+2026-10-14 01:47:27,470 | INFO    | eguard.training.loop | эпоха 0 шаг 980 | loss=0.3861
+2026-10-14 01:47:31,855 | INFO    | eguard.training.loop | эпоха 0 шаг 1000 | loss=0.1107
+2026-10-14 01:47:38,943 | INFO    | eguard.training.loop | шаг 1000 | val AUROC=0.9705 TPR@FPR=0.6874 FPR=0.0612 FNR=0.1034
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  6.76it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  6.75it/s]
+2026-10-14 01:47:39,098 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-classification/checkpoint
+2026-10-14 01:47:42,803 | INFO    | eguard.training.loop | эпоха 0 шаг 1020 | loss=0.2086
+2026-10-14 01:47:46,930 | INFO    | eguard.training.loop | эпоха 0 шаг 1040 | loss=0.2632
+2026-10-14 01:47:50,912 | INFO    | eguard.training.loop | эпоха 0 шаг 1060 | loss=0.2642
+2026-10-14 01:47:55,196 | INFO    | eguard.training.loop | эпоха 0 шаг 1080 | loss=0.1610
+2026-10-14 01:47:59,543 | INFO    | eguard.training.loop | эпоха 0 шаг 1100 | loss=0.3342
+2026-10-14 01:48:03,547 | INFO    | eguard.training.loop | эпоха 0 шаг 1120 | loss=0.0783
+2026-10-14 01:48:07,406 | INFO    | eguard.training.loop | эпоха 0 шаг 1140 | loss=0.1549
+2026-10-14 01:48:13,039 | INFO    | eguard.training.loop | эпоха 0 шаг 1160 | loss=0.1535
+2026-10-14 01:48:17,321 | INFO    | eguard.training.loop | эпоха 0 шаг 1180 | loss=0.4902
+2026-10-14 01:48:22,010 | INFO    | eguard.training.loop | эпоха 0 шаг 1200 | loss=0.0671
+2026-10-14 01:48:29,299 | INFO    | eguard.training.loop | шаг 1200 | val AUROC=0.9722 TPR@FPR=0.7011 FPR=0.0612 FNR=0.1078
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.58it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.57it/s]
+2026-10-14 01:48:29,486 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-classification/checkpoint
+2026-10-14 01:48:33,360 | INFO    | eguard.training.loop | эпоха 0 шаг 1220 | loss=0.3664
+2026-10-14 01:48:36,914 | INFO    | eguard.training.loop | эпоха 0 шаг 1240 | loss=0.0957
+2026-10-14 01:48:40,561 | INFO    | eguard.training.loop | эпоха 0 шаг 1260 | loss=0.2584
+2026-10-14 01:48:44,419 | INFO    | eguard.training.loop | эпоха 0 шаг 1280 | loss=0.2222
+2026-10-14 01:48:49,085 | INFO    | eguard.training.loop | эпоха 0 шаг 1300 | loss=0.2169
+2026-10-14 01:48:53,413 | INFO    | eguard.training.loop | эпоха 0 шаг 1320 | loss=0.1994
+2026-10-14 01:48:57,416 | INFO    | eguard.training.loop | эпоха 0 шаг 1340 | loss=0.1624
+2026-10-14 01:49:05,455 | INFO    | eguard.training.loop | шаг 1344 | val AUROC=0.9735 TPR@FPR=0.7108 FPR=0.0768 FNR=0.0860
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  6.50it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  6.49it/s]
+2026-10-14 01:49:05,617 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-classification/checkpoint
+2026-10-14 01:49:08,698 | INFO    | eguard.training.loop | эпоха 1 шаг 1360 | loss=0.2880
+2026-10-14 01:49:12,384 | INFO    | eguard.training.loop | эпоха 1 шаг 1380 | loss=0.2042
+2026-10-14 01:49:16,387 | INFO    | eguard.training.loop | эпоха 1 шаг 1400 | loss=0.3077
+2026-10-14 01:49:25,321 | INFO    | eguard.training.loop | шаг 1400 | val AUROC=0.9736 TPR@FPR=0.7443 FPR=0.0512 FNR=0.1183
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  3.70it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  3.70it/s]
+2026-10-14 01:49:25,600 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-classification/checkpoint
+2026-10-14 01:49:29,145 | INFO    | eguard.training.loop | эпоха 1 шаг 1420 | loss=0.0871
+2026-10-14 01:49:32,894 | INFO    | eguard.training.loop | эпоха 1 шаг 1440 | loss=0.1919
+2026-10-14 01:49:37,283 | INFO    | eguard.training.loop | эпоха 1 шаг 1460 | loss=0.1060
+2026-10-14 01:49:41,254 | INFO    | eguard.training.loop | эпоха 1 шаг 1480 | loss=0.1195
+2026-10-14 01:49:45,744 | INFO    | eguard.training.loop | эпоха 1 шаг 1500 | loss=0.1785
+2026-10-14 01:49:49,882 | INFO    | eguard.training.loop | эпоха 1 шаг 1520 | loss=0.0530
+2026-10-14 01:49:55,312 | INFO    | eguard.training.loop | эпоха 1 шаг 1540 | loss=0.3615
+2026-10-14 01:49:59,132 | INFO    | eguard.training.loop | эпоха 1 шаг 1560 | loss=0.1648
+2026-10-14 01:50:03,306 | INFO    | eguard.training.loop | эпоха 1 шаг 1580 | loss=0.0901
+2026-10-14 01:50:07,006 | INFO    | eguard.training.loop | эпоха 1 шаг 1600 | loss=0.0680
+2026-10-14 01:50:14,493 | INFO    | eguard.training.loop | шаг 1600 | val AUROC=0.9743 TPR@FPR=0.7213 FPR=0.0555 FNR=0.1143
+2026-10-14 01:50:18,664 | INFO    | eguard.training.loop | эпоха 1 шаг 1620 | loss=0.2220
+2026-10-14 01:50:22,374 | INFO    | eguard.training.loop | эпоха 1 шаг 1640 | loss=0.0507
+2026-10-14 01:50:27,403 | INFO    | eguard.training.loop | эпоха 1 шаг 1660 | loss=0.0676
+2026-10-14 01:50:31,636 | INFO    | eguard.training.loop | эпоха 1 шаг 1680 | loss=0.1045
+2026-10-14 01:50:35,865 | INFO    | eguard.training.loop | эпоха 1 шаг 1700 | loss=0.1213
+2026-10-14 01:50:39,354 | INFO    | eguard.training.loop | эпоха 1 шаг 1720 | loss=0.0661
+2026-10-14 01:50:43,528 | INFO    | eguard.training.loop | эпоха 1 шаг 1740 | loss=0.0920
+2026-10-14 01:50:47,491 | INFO    | eguard.training.loop | эпоха 1 шаг 1760 | loss=0.1714
+2026-10-14 01:50:51,802 | INFO    | eguard.training.loop | эпоха 1 шаг 1780 | loss=0.2314
+2026-10-14 01:50:55,558 | INFO    | eguard.training.loop | эпоха 1 шаг 1800 | loss=0.1560
+2026-10-14 01:51:04,442 | INFO    | eguard.training.loop | шаг 1800 | val AUROC=0.9745 TPR@FPR=0.7375 FPR=0.0694 FNR=0.0949
+2026-10-14 01:51:08,526 | INFO    | eguard.training.loop | эпоха 1 шаг 1820 | loss=0.1184
+2026-10-14 01:51:12,241 | INFO    | eguard.training.loop | эпоха 1 шаг 1840 | loss=0.2153
+2026-10-14 01:51:16,246 | INFO    | eguard.training.loop | эпоха 1 шаг 1860 | loss=0.0953
+2026-10-14 01:51:20,088 | INFO    | eguard.training.loop | эпоха 1 шаг 1880 | loss=0.0322
+2026-10-14 01:51:24,008 | INFO    | eguard.training.loop | эпоха 1 шаг 1900 | loss=0.1662
+2026-10-14 01:51:28,059 | INFO    | eguard.training.loop | эпоха 1 шаг 1920 | loss=0.0757
+2026-10-14 01:51:33,272 | INFO    | eguard.training.loop | эпоха 1 шаг 1940 | loss=0.0847
+2026-10-14 01:51:37,098 | INFO    | eguard.training.loop | эпоха 1 шаг 1960 | loss=0.1630
+2026-10-14 01:51:40,729 | INFO    | eguard.training.loop | эпоха 1 шаг 1980 | loss=0.0749
+2026-10-14 01:51:44,643 | INFO    | eguard.training.loop | эпоха 1 шаг 2000 | loss=0.1759
+2026-10-14 01:51:52,010 | INFO    | eguard.training.loop | шаг 2000 | val AUROC=0.9755 TPR@FPR=0.7512 FPR=0.0694 FNR=0.0864
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  6.62it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  6.61it/s]
+2026-10-14 01:51:52,169 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-classification/checkpoint
+2026-10-14 01:51:55,995 | INFO    | eguard.training.loop | эпоха 1 шаг 2020 | loss=0.1038
+2026-10-14 01:51:59,617 | INFO    | eguard.training.loop | эпоха 1 шаг 2040 | loss=0.2706
+2026-10-14 01:52:03,740 | INFO    | eguard.training.loop | эпоха 1 шаг 2060 | loss=0.3108
+2026-10-14 01:52:08,765 | INFO    | eguard.training.loop | эпоха 1 шаг 2080 | loss=0.1759
+2026-10-14 01:52:12,739 | INFO    | eguard.training.loop | эпоха 1 шаг 2100 | loss=0.0709
+2026-10-14 01:52:16,547 | INFO    | eguard.training.loop | эпоха 1 шаг 2120 | loss=0.0577
+2026-10-14 01:52:20,616 | INFO    | eguard.training.loop | эпоха 1 шаг 2140 | loss=0.2183
+2026-10-14 01:52:24,839 | INFO    | eguard.training.loop | эпоха 1 шаг 2160 | loss=0.1508
+2026-10-14 01:52:29,116 | INFO    | eguard.training.loop | эпоха 1 шаг 2180 | loss=0.0442
+2026-10-14 01:52:33,320 | INFO    | eguard.training.loop | эпоха 1 шаг 2200 | loss=0.3392
+2026-10-14 01:52:42,056 | INFO    | eguard.training.loop | шаг 2200 | val AUROC=0.9756 TPR@FPR=0.7435 FPR=0.0586 FNR=0.0994
+2026-10-14 01:52:46,553 | INFO    | eguard.training.loop | эпоха 1 шаг 2220 | loss=0.1941
+2026-10-14 01:52:50,617 | INFO    | eguard.training.loop | эпоха 1 шаг 2240 | loss=0.1727
+2026-10-14 01:52:54,235 | INFO    | eguard.training.loop | эпоха 1 шаг 2260 | loss=0.1019
+2026-10-14 01:52:58,039 | INFO    | eguard.training.loop | эпоха 1 шаг 2280 | loss=0.2363
+2026-10-14 01:53:01,628 | INFO    | eguard.training.loop | эпоха 1 шаг 2300 | loss=0.1251
+2026-10-14 01:53:05,948 | INFO    | eguard.training.loop | эпоха 1 шаг 2320 | loss=0.1505
+2026-10-14 01:53:09,767 | INFO    | eguard.training.loop | эпоха 1 шаг 2340 | loss=0.3596
+2026-10-14 01:53:14,807 | INFO    | eguard.training.loop | эпоха 1 шаг 2360 | loss=0.0318
+2026-10-14 01:53:18,531 | INFO    | eguard.training.loop | эпоха 1 шаг 2380 | loss=0.0913
+2026-10-14 01:53:22,749 | INFO    | eguard.training.loop | эпоха 1 шаг 2400 | loss=0.3437
+2026-10-14 01:53:30,241 | INFO    | eguard.training.loop | шаг 2400 | val AUROC=0.9762 TPR@FPR=0.7472 FPR=0.0694 FNR=0.0872
+2026-10-14 01:53:34,437 | INFO    | eguard.training.loop | эпоха 1 шаг 2420 | loss=0.0926
+2026-10-14 01:53:38,305 | INFO    | eguard.training.loop | эпоха 1 шаг 2440 | loss=0.2697
+2026-10-14 01:53:42,699 | INFO    | eguard.training.loop | эпоха 1 шаг 2460 | loss=0.2669
+2026-10-14 01:53:47,838 | INFO    | eguard.training.loop | эпоха 1 шаг 2480 | loss=0.3263
+2026-10-14 01:53:52,104 | INFO    | eguard.training.loop | эпоха 1 шаг 2500 | loss=0.2324
+2026-10-14 01:53:56,169 | INFO    | eguard.training.loop | эпоха 1 шаг 2520 | loss=0.1420
+2026-10-14 01:54:00,578 | INFO    | eguard.training.loop | эпоха 1 шаг 2540 | loss=0.1982
+2026-10-14 01:54:04,237 | INFO    | eguard.training.loop | эпоха 1 шаг 2560 | loss=0.0638
+2026-10-14 01:54:08,551 | INFO    | eguard.training.loop | эпоха 1 шаг 2580 | loss=0.0778
+2026-10-14 01:54:12,796 | INFO    | eguard.training.loop | эпоха 1 шаг 2600 | loss=0.1478
+2026-10-14 01:54:21,665 | INFO    | eguard.training.loop | шаг 2600 | val AUROC=0.9762 TPR@FPR=0.7439 FPR=0.0698 FNR=0.0872
+2026-10-14 01:54:25,540 | INFO    | eguard.training.loop | эпоха 1 шаг 2620 | loss=0.1322
+2026-10-14 01:54:29,431 | INFO    | eguard.training.loop | эпоха 1 шаг 2640 | loss=0.2169
+2026-10-14 01:54:33,342 | INFO    | eguard.training.loop | эпоха 1 шаг 2660 | loss=0.0492
+2026-10-14 01:54:36,828 | INFO    | eguard.training.loop | эпоха 1 шаг 2680 | loss=0.0362
+2026-10-14 01:54:45,840 | INFO    | eguard.training.loop | шаг 2688 | val AUROC=0.9762 TPR@FPR=0.7435 FPR=0.0698 FNR=0.0876
+2026-10-14 01:54:45,847 | INFO    | eguard.training.loop | Готово за 655.5 c. Лучший шаг 2000: TPR@FPR=0.7512
+2026-10-14 01:54:45,865 | INFO    | train_contrastive | Готово: artifacts/runs_wgm_pure/pure-classification
+
+=== pure-classification ===
+лучший шаг 2000: AUROC=0.9755, TPR@FPR=0.7512
+чекпоинт: artifacts/runs_wgm_pure/pure-classification/checkpoint
+python scripts/08_train_contrastive.py --config configs/rq3_wgm_pure.yaml --objective contrastive    --run-name pure-contrastive
+2026-10-14 01:54:49,501 | INFO    | train_contrastive | Тексты триплетов совпадают с текстами датасета: 43025
+2026-10-14 01:54:49,527 | INFO    | train_contrastive | e5-small-v2 | contrastive | триплетов=43025, текстов=43025 (dataset), val=4781
+2026-10-14 01:54:51,498 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 01:54:51,564 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+2026-10-14 01:54:52,814 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 01:54:52,880 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/tokenizer_config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Ftokenizer_config.json=&etag=%228046d4d4aff4529a10e0ad47043bdabd6304fb58%22 "HTTP/1.1 200 OK"
+2026-10-14 01:54:53,043 | INFO    | httpx | HTTP Request: GET https://huggingface.co/api/models/intfloat/e5-small-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-10-14 01:54:53,203 | INFO    | httpx | HTTP Request: GET https://huggingface.co/api/models/intfloat/e5-small-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-14 01:54:53,382 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 01:54:53,425 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2024.90it/s]
+2026-10-14 01:54:53,791 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 01:54:53,835 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+2026-10-14 01:54:54,001 | INFO    | train_contrastive | Устройство: cuda, голова: False, KL-якорь: False, gradient checkpointing: True
+2026-10-14 01:54:54,958 | INFO    | eguard.training.tracking | MLflow run f170b270bdf648b585971dd9b683c56e (sqlite:///mlflow.db, experiment=eguard-rq3-wgm-pure)
+[transformers] `use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`.
+2026-10-14 01:55:07,720 | INFO    | eguard.training.loop | эпоха 0 шаг 20 | loss=4.3557
+2026-10-14 01:55:19,968 | INFO    | eguard.training.loop | эпоха 0 шаг 40 | loss=4.3218
+2026-10-14 01:55:33,533 | INFO    | eguard.training.loop | эпоха 0 шаг 60 | loss=4.3731
+2026-10-14 01:55:45,048 | INFO    | eguard.training.loop | эпоха 0 шаг 80 | loss=4.2443
+2026-10-14 01:55:56,140 | INFO    | eguard.training.loop | эпоха 0 шаг 100 | loss=4.1869
+2026-10-14 01:56:08,614 | INFO    | eguard.training.loop | эпоха 0 шаг 120 | loss=4.0488
+2026-10-14 01:56:22,394 | INFO    | eguard.training.loop | эпоха 0 шаг 140 | loss=4.0300
+2026-10-14 01:56:33,320 | INFO    | eguard.training.loop | эпоха 0 шаг 160 | loss=3.7385
+2026-10-14 01:56:44,895 | INFO    | eguard.training.loop | эпоха 0 шаг 180 | loss=3.7977
+2026-10-14 01:56:57,689 | INFO    | eguard.training.loop | эпоха 0 шаг 200 | loss=3.8588
+2026-10-14 01:57:06,589 | INFO    | eguard.training.loop | шаг 200 | val AUROC=0.9005 TPR@FPR=0.3905 FPR=0.1397 FNR=0.2439
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.12it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.11it/s]
+2026-10-14 01:57:07,012 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-contrastive/checkpoint
+2026-10-14 01:57:19,172 | INFO    | eguard.training.loop | эпоха 0 шаг 220 | loss=3.6437
+2026-10-14 01:57:31,812 | INFO    | eguard.training.loop | эпоха 0 шаг 240 | loss=3.7027
+2026-10-14 01:57:43,117 | INFO    | eguard.training.loop | эпоха 0 шаг 260 | loss=3.8725
+2026-10-14 01:57:56,566 | INFO    | eguard.training.loop | эпоха 0 шаг 280 | loss=3.5157
+2026-10-14 01:58:07,839 | INFO    | eguard.training.loop | эпоха 0 шаг 300 | loss=3.4320
+2026-10-14 01:58:19,952 | INFO    | eguard.training.loop | эпоха 0 шаг 320 | loss=3.5014
+2026-10-14 01:58:33,628 | INFO    | eguard.training.loop | эпоха 0 шаг 340 | loss=3.4332
+2026-10-14 01:58:44,618 | INFO    | eguard.training.loop | эпоха 0 шаг 360 | loss=3.7751
+2026-10-14 01:58:56,921 | INFO    | eguard.training.loop | эпоха 0 шаг 380 | loss=3.7630
+2026-10-14 01:59:10,224 | INFO    | eguard.training.loop | эпоха 0 шаг 400 | loss=3.7954
+2026-10-14 01:59:19,765 | INFO    | eguard.training.loop | шаг 400 | val AUROC=0.9437 TPR@FPR=0.5578 FPR=0.0759 FNR=0.1721
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.36it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.35it/s]
+2026-10-14 01:59:20,004 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-contrastive/checkpoint
+2026-10-14 01:59:32,073 | INFO    | eguard.training.loop | эпоха 0 шаг 420 | loss=3.7875
+2026-10-14 01:59:43,383 | INFO    | eguard.training.loop | эпоха 0 шаг 440 | loss=3.4973
+2026-10-14 01:59:54,753 | INFO    | eguard.training.loop | эпоха 0 шаг 460 | loss=3.6325
+2026-10-14 02:00:08,404 | INFO    | eguard.training.loop | эпоха 0 шаг 480 | loss=3.5190
+2026-10-14 02:00:20,173 | INFO    | eguard.training.loop | эпоха 0 шаг 500 | loss=3.5700
+2026-10-14 02:00:31,987 | INFO    | eguard.training.loop | эпоха 0 шаг 520 | loss=3.5003
+2026-10-14 02:00:44,771 | INFO    | eguard.training.loop | эпоха 0 шаг 540 | loss=3.4887
+2026-10-14 02:00:57,260 | INFO    | eguard.training.loop | эпоха 0 шаг 560 | loss=3.7840
+2026-10-14 02:01:09,448 | INFO    | eguard.training.loop | эпоха 0 шаг 580 | loss=3.4387
+2026-10-14 02:01:21,906 | INFO    | eguard.training.loop | эпоха 0 шаг 600 | loss=3.6631
+2026-10-14 02:01:31,065 | INFO    | eguard.training.loop | шаг 600 | val AUROC=0.9568 TPR@FPR=0.5779 FPR=0.0846 FNR=0.1296
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.00it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.99it/s]
+2026-10-14 02:01:31,276 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-contrastive/checkpoint
+2026-10-14 02:01:42,524 | INFO    | eguard.training.loop | эпоха 0 шаг 620 | loss=3.2820
+2026-10-14 02:01:56,357 | INFO    | eguard.training.loop | эпоха 0 шаг 640 | loss=3.3816
+2026-10-14 02:02:08,640 | INFO    | eguard.training.loop | эпоха 0 шаг 660 | loss=3.3480
+2026-10-14 02:02:21,714 | INFO    | eguard.training.loop | эпоха 0 шаг 680 | loss=3.6915
+2026-10-14 02:02:33,345 | INFO    | eguard.training.loop | эпоха 0 шаг 700 | loss=3.5045
+2026-10-14 02:02:45,585 | INFO    | eguard.training.loop | эпоха 0 шаг 720 | loss=3.4708
+2026-10-14 02:02:58,379 | INFO    | eguard.training.loop | эпоха 0 шаг 740 | loss=3.5167
+2026-10-14 02:03:10,513 | INFO    | eguard.training.loop | эпоха 0 шаг 760 | loss=3.5930
+2026-10-14 02:03:22,900 | INFO    | eguard.training.loop | эпоха 0 шаг 780 | loss=3.4423
+2026-10-14 02:03:35,906 | INFO    | eguard.training.loop | эпоха 0 шаг 800 | loss=3.4436
+2026-10-14 02:03:45,057 | INFO    | eguard.training.loop | шаг 800 | val AUROC=0.9587 TPR@FPR=0.6228 FPR=0.0829 FNR=0.1135
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.84it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.83it/s]
+2026-10-14 02:03:45,274 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-contrastive/checkpoint
+2026-10-14 02:03:56,866 | INFO    | eguard.training.loop | эпоха 0 шаг 820 | loss=3.6051
+2026-10-14 02:04:10,044 | INFO    | eguard.training.loop | эпоха 0 шаг 840 | loss=3.2675
+2026-10-14 02:04:21,617 | INFO    | eguard.training.loop | эпоха 0 шаг 860 | loss=3.5960
+2026-10-14 02:04:34,257 | INFO    | eguard.training.loop | эпоха 0 шаг 880 | loss=3.5593
+2026-10-14 02:04:45,499 | INFO    | eguard.training.loop | эпоха 0 шаг 900 | loss=3.8551
+2026-10-14 02:04:56,982 | INFO    | eguard.training.loop | эпоха 0 шаг 920 | loss=3.5526
+2026-10-14 02:05:10,092 | INFO    | eguard.training.loop | эпоха 0 шаг 940 | loss=3.4821
+2026-10-14 02:05:22,087 | INFO    | eguard.training.loop | эпоха 0 шаг 960 | loss=3.7281
+2026-10-14 02:05:33,971 | INFO    | eguard.training.loop | эпоха 0 шаг 980 | loss=3.7648
+2026-10-14 02:05:46,461 | INFO    | eguard.training.loop | эпоха 0 шаг 1000 | loss=3.4460
+2026-10-14 02:05:55,799 | INFO    | eguard.training.loop | шаг 1000 | val AUROC=0.9615 TPR@FPR=0.6349 FPR=0.0777 FNR=0.1171
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.40it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.40it/s]
+2026-10-14 02:05:56,036 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-contrastive/checkpoint
+2026-10-14 02:06:07,422 | INFO    | eguard.training.loop | эпоха 0 шаг 1020 | loss=3.5541
+2026-10-14 02:06:21,252 | INFO    | eguard.training.loop | эпоха 0 шаг 1040 | loss=3.6177
+2026-10-14 02:06:32,300 | INFO    | eguard.training.loop | эпоха 0 шаг 1060 | loss=3.5075
+2026-10-14 02:06:45,591 | INFO    | eguard.training.loop | эпоха 0 шаг 1080 | loss=3.4756
+2026-10-14 02:06:57,464 | INFO    | eguard.training.loop | эпоха 0 шаг 1100 | loss=3.5012
+2026-10-14 02:07:09,245 | INFO    | eguard.training.loop | эпоха 0 шаг 1120 | loss=3.5838
+2026-10-14 02:07:21,728 | INFO    | eguard.training.loop | эпоха 0 шаг 1140 | loss=3.3178
+2026-10-14 02:07:33,114 | INFO    | eguard.training.loop | эпоха 0 шаг 1160 | loss=3.4192
+2026-10-14 02:07:45,064 | INFO    | eguard.training.loop | эпоха 0 шаг 1180 | loss=3.6926
+2026-10-14 02:07:57,128 | INFO    | eguard.training.loop | эпоха 0 шаг 1200 | loss=3.4631
+2026-10-14 02:08:07,800 | INFO    | eguard.training.loop | шаг 1200 | val AUROC=0.9646 TPR@FPR=0.6523 FPR=0.0651 FNR=0.1147
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.93it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.92it/s]
+2026-10-14 02:08:08,014 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-contrastive/checkpoint
+2026-10-14 02:08:19,647 | INFO    | eguard.training.loop | эпоха 0 шаг 1220 | loss=3.7481
+2026-10-14 02:08:31,653 | INFO    | eguard.training.loop | эпоха 0 шаг 1240 | loss=3.9499
+2026-10-14 02:08:44,852 | INFO    | eguard.training.loop | эпоха 0 шаг 1260 | loss=3.3357
+2026-10-14 02:08:56,693 | INFO    | eguard.training.loop | эпоха 0 шаг 1280 | loss=3.6999
+2026-10-14 02:09:07,918 | INFO    | eguard.training.loop | эпоха 0 шаг 1300 | loss=3.6517
+2026-10-14 02:09:21,432 | INFO    | eguard.training.loop | эпоха 0 шаг 1320 | loss=3.8177
+2026-10-14 02:09:33,952 | INFO    | eguard.training.loop | эпоха 0 шаг 1340 | loss=3.2904
+2026-10-14 02:09:45,146 | INFO    | eguard.training.loop | шаг 1344 | val AUROC=0.9686 TPR@FPR=0.6870 FPR=0.0668 FNR=0.1135
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.99it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.98it/s]
+2026-10-14 02:09:45,357 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-contrastive/checkpoint
+2026-10-14 02:09:54,302 | INFO    | eguard.training.loop | эпоха 1 шаг 1360 | loss=3.6721
+2026-10-14 02:10:07,190 | INFO    | eguard.training.loop | эпоха 1 шаг 1380 | loss=3.5571
+2026-10-14 02:10:18,949 | INFO    | eguard.training.loop | эпоха 1 шаг 1400 | loss=3.5950
+2026-10-14 02:10:28,070 | INFO    | eguard.training.loop | шаг 1400 | val AUROC=0.9657 TPR@FPR=0.6624 FPR=0.0629 FNR=0.1204
+2026-10-14 02:10:40,516 | INFO    | eguard.training.loop | эпоха 1 шаг 1420 | loss=3.4126
+2026-10-14 02:10:52,075 | INFO    | eguard.training.loop | эпоха 1 шаг 1440 | loss=3.4496
+2026-10-14 02:11:04,162 | INFO    | eguard.training.loop | эпоха 1 шаг 1460 | loss=3.1535
+2026-10-14 02:11:17,470 | INFO    | eguard.training.loop | эпоха 1 шаг 1480 | loss=3.2950
+2026-10-14 02:11:29,837 | INFO    | eguard.training.loop | эпоха 1 шаг 1500 | loss=3.2825
+2026-10-14 02:11:43,379 | INFO    | eguard.training.loop | эпоха 1 шаг 1520 | loss=3.5375
+2026-10-14 02:11:55,254 | INFO    | eguard.training.loop | эпоха 1 шаг 1540 | loss=3.6024
+2026-10-14 02:12:06,375 | INFO    | eguard.training.loop | эпоха 1 шаг 1560 | loss=3.1540
+2026-10-14 02:12:19,625 | INFO    | eguard.training.loop | эпоха 1 шаг 1580 | loss=3.4250
+2026-10-14 02:12:31,265 | INFO    | eguard.training.loop | эпоха 1 шаг 1600 | loss=3.6085
+2026-10-14 02:12:40,425 | INFO    | eguard.training.loop | шаг 1600 | val AUROC=0.9689 TPR@FPR=0.6171 FPR=0.0829 FNR=0.0897
+2026-10-14 02:12:54,178 | INFO    | eguard.training.loop | эпоха 1 шаг 1620 | loss=3.1935
+2026-10-14 02:13:05,861 | INFO    | eguard.training.loop | эпоха 1 шаг 1640 | loss=3.4024
+2026-10-14 02:13:17,517 | INFO    | eguard.training.loop | эпоха 1 шаг 1660 | loss=3.2193
+2026-10-14 02:13:29,584 | INFO    | eguard.training.loop | эпоха 1 шаг 1680 | loss=3.2529
+2026-10-14 02:13:43,645 | INFO    | eguard.training.loop | эпоха 1 шаг 1700 | loss=3.2074
+2026-10-14 02:13:54,922 | INFO    | eguard.training.loop | эпоха 1 шаг 1720 | loss=3.4585
+2026-10-14 02:14:06,781 | INFO    | eguard.training.loop | эпоха 1 шаг 1740 | loss=3.4803
+2026-10-14 02:14:18,863 | INFO    | eguard.training.loop | эпоха 1 шаг 1760 | loss=3.2514
+2026-10-14 02:14:30,516 | INFO    | eguard.training.loop | эпоха 1 шаг 1780 | loss=3.7387
+2026-10-14 02:14:42,737 | INFO    | eguard.training.loop | эпоха 1 шаг 1800 | loss=3.2204
+2026-10-14 02:14:53,177 | INFO    | eguard.training.loop | шаг 1800 | val AUROC=0.9697 TPR@FPR=0.6712 FPR=0.0772 FNR=0.0945
+2026-10-14 02:15:04,832 | INFO    | eguard.training.loop | эпоха 1 шаг 1820 | loss=3.5181
+2026-10-14 02:15:17,721 | INFO    | eguard.training.loop | эпоха 1 шаг 1840 | loss=3.6519
+2026-10-14 02:15:29,165 | INFO    | eguard.training.loop | эпоха 1 шаг 1860 | loss=3.2711
+2026-10-14 02:15:41,289 | INFO    | eguard.training.loop | эпоха 1 шаг 1880 | loss=3.6814
+2026-10-14 02:15:54,407 | INFO    | eguard.training.loop | эпоха 1 шаг 1900 | loss=3.4192
+2026-10-14 02:16:06,605 | INFO    | eguard.training.loop | эпоха 1 шаг 1920 | loss=3.4046
+2026-10-14 02:16:18,507 | INFO    | eguard.training.loop | эпоха 1 шаг 1940 | loss=3.3207
+2026-10-14 02:16:31,472 | INFO    | eguard.training.loop | эпоха 1 шаг 1960 | loss=3.3658
+2026-10-14 02:16:42,711 | INFO    | eguard.training.loop | эпоха 1 шаг 1980 | loss=3.1327
+2026-10-14 02:16:54,835 | INFO    | eguard.training.loop | эпоха 1 шаг 2000 | loss=3.6073
+2026-10-14 02:17:05,029 | INFO    | eguard.training.loop | шаг 2000 | val AUROC=0.9698 TPR@FPR=0.6555 FPR=0.0807 FNR=0.0917
+2026-10-14 02:17:16,512 | INFO    | eguard.training.loop | эпоха 1 шаг 2020 | loss=3.4012
+2026-10-14 02:17:27,428 | INFO    | eguard.training.loop | эпоха 1 шаг 2040 | loss=3.3156
+2026-10-14 02:17:40,665 | INFO    | eguard.training.loop | эпоха 1 шаг 2060 | loss=3.2403
+2026-10-14 02:17:52,428 | INFO    | eguard.training.loop | эпоха 1 шаг 2080 | loss=3.2225
+2026-10-14 02:18:05,928 | INFO    | eguard.training.loop | эпоха 1 шаг 2100 | loss=3.3816
+2026-10-14 02:18:18,020 | INFO    | eguard.training.loop | эпоха 1 шаг 2120 | loss=3.6347
+2026-10-14 02:18:30,499 | INFO    | eguard.training.loop | эпоха 1 шаг 2140 | loss=3.4129
+2026-10-14 02:18:43,961 | INFO    | eguard.training.loop | эпоха 1 шаг 2160 | loss=3.6126
+2026-10-14 02:18:55,538 | INFO    | eguard.training.loop | эпоха 1 шаг 2180 | loss=3.3610
+2026-10-14 02:19:07,948 | INFO    | eguard.training.loop | эпоха 1 шаг 2200 | loss=3.7676
+2026-10-14 02:19:18,112 | INFO    | eguard.training.loop | шаг 2200 | val AUROC=0.9693 TPR@FPR=0.6737 FPR=0.0716 FNR=0.0989
+2026-10-14 02:19:30,133 | INFO    | eguard.training.loop | эпоха 1 шаг 2220 | loss=3.6692
+2026-10-14 02:19:43,346 | INFO    | eguard.training.loop | эпоха 1 шаг 2240 | loss=3.5200
+2026-10-14 02:19:54,880 | INFO    | eguard.training.loop | эпоха 1 шаг 2260 | loss=3.3300
+2026-10-14 02:20:06,031 | INFO    | eguard.training.loop | эпоха 1 шаг 2280 | loss=3.2531
+2026-10-14 02:20:18,517 | INFO    | eguard.training.loop | эпоха 1 шаг 2300 | loss=3.3864
+2026-10-14 02:20:30,417 | INFO    | eguard.training.loop | эпоха 1 шаг 2320 | loss=3.6039
+2026-10-14 02:20:42,174 | INFO    | eguard.training.loop | эпоха 1 шаг 2340 | loss=3.6059
+2026-10-14 02:20:54,443 | INFO    | eguard.training.loop | эпоха 1 шаг 2360 | loss=3.3923
+2026-10-14 02:21:05,821 | INFO    | eguard.training.loop | эпоха 1 шаг 2380 | loss=3.2995
+2026-10-14 02:21:17,938 | INFO    | eguard.training.loop | эпоха 1 шаг 2400 | loss=3.7116
+2026-10-14 02:21:28,433 | INFO    | eguard.training.loop | шаг 2400 | val AUROC=0.9699 TPR@FPR=0.6511 FPR=0.0777 FNR=0.0905
+2026-10-14 02:21:40,568 | INFO    | eguard.training.loop | эпоха 1 шаг 2420 | loss=3.5701
+2026-10-14 02:21:52,110 | INFO    | eguard.training.loop | эпоха 1 шаг 2440 | loss=3.3812
+2026-10-14 02:22:05,749 | INFO    | eguard.training.loop | эпоха 1 шаг 2460 | loss=3.4226
+2026-10-14 02:22:17,396 | INFO    | eguard.training.loop | эпоха 1 шаг 2480 | loss=3.1231
+2026-10-14 02:22:31,174 | INFO    | eguard.training.loop | эпоха 1 шаг 2500 | loss=3.6463
+2026-10-14 02:22:43,523 | INFO    | eguard.training.loop | эпоха 1 шаг 2520 | loss=3.5461
+2026-10-14 02:22:55,205 | INFO    | eguard.training.loop | эпоха 1 шаг 2540 | loss=3.7593
+2026-10-14 02:23:08,511 | INFO    | eguard.training.loop | эпоха 1 шаг 2560 | loss=2.9121
+2026-10-14 02:23:20,000 | INFO    | eguard.training.loop | эпоха 1 шаг 2580 | loss=3.4634
+2026-10-14 02:23:31,961 | INFO    | eguard.training.loop | эпоха 1 шаг 2600 | loss=3.4056
+2026-10-14 02:23:42,615 | INFO    | eguard.training.loop | шаг 2600 | val AUROC=0.9698 TPR@FPR=0.6632 FPR=0.0742 FNR=0.0945
+2026-10-14 02:23:54,213 | INFO    | eguard.training.loop | эпоха 1 шаг 2620 | loss=3.2255
+2026-10-14 02:24:06,182 | INFO    | eguard.training.loop | эпоха 1 шаг 2640 | loss=3.4649
+2026-10-14 02:24:19,207 | INFO    | eguard.training.loop | эпоха 1 шаг 2660 | loss=3.2313
+2026-10-14 02:24:30,229 | INFO    | eguard.training.loop | эпоха 1 шаг 2680 | loss=3.3124
+2026-10-14 02:24:44,910 | INFO    | eguard.training.loop | шаг 2688 | val AUROC=0.9698 TPR@FPR=0.6620 FPR=0.0738 FNR=0.0957
+2026-10-14 02:24:44,920 | INFO    | eguard.training.loop | Готово за 1735.9 c. Лучший шаг 1344: TPR@FPR=0.6870
+2026-10-14 02:24:44,944 | INFO    | train_contrastive | Готово: artifacts/runs_wgm_pure/pure-contrastive
+
+=== pure-contrastive ===
+лучший шаг 1344: AUROC=0.9686, TPR@FPR=0.6870
+чекпоинт: artifacts/runs_wgm_pure/pure-contrastive/checkpoint
+python scripts/08_train_contrastive.py --config configs/rq3_wgm_pure.yaml --objective joint          --run-name pure-joint
+2026-10-14 02:24:47,901 | INFO    | train_contrastive | Тексты триплетов совпадают с текстами датасета: 43025
+2026-10-14 02:24:47,921 | INFO    | train_contrastive | e5-small-v2 | joint | триплетов=43025, текстов=43025 (dataset), val=4781
+2026-10-14 02:24:49,806 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 02:24:49,834 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+2026-10-14 02:24:49,980 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 02:24:50,027 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/tokenizer_config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Ftokenizer_config.json=&etag=%228046d4d4aff4529a10e0ad47043bdabd6304fb58%22 "HTTP/1.1 200 OK"
+2026-10-14 02:24:50,170 | INFO    | httpx | HTTP Request: GET https://huggingface.co/api/models/intfloat/e5-small-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-10-14 02:24:50,317 | INFO    | httpx | HTTP Request: GET https://huggingface.co/api/models/intfloat/e5-small-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-14 02:24:50,475 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 02:24:50,501 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2121.93it/s]
+2026-10-14 02:24:50,841 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 02:24:50,867 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+2026-10-14 02:24:51,012 | INFO    | train_contrastive | Устройство: cuda, голова: True, KL-якорь: False, gradient checkpointing: True
+2026-10-14 02:24:51,852 | INFO    | eguard.training.tracking | MLflow run b15e586f64f34a41bdb15b7ae6a0d0b7 (sqlite:///mlflow.db, experiment=eguard-rq3-wgm-pure)
+[transformers] `use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`.
+2026-10-14 02:25:07,862 | INFO    | eguard.training.loop | эпоха 0 шаг 20 | loss=4.8859
+2026-10-14 02:25:25,698 | INFO    | eguard.training.loop | эпоха 0 шаг 40 | loss=4.7146
+2026-10-14 02:25:41,441 | INFO    | eguard.training.loop | эпоха 0 шаг 60 | loss=4.8208
+2026-10-14 02:25:58,069 | INFO    | eguard.training.loop | эпоха 0 шаг 80 | loss=4.7134
+2026-10-14 02:26:13,748 | INFO    | eguard.training.loop | эпоха 0 шаг 100 | loss=4.6392
+2026-10-14 02:26:31,565 | INFO    | eguard.training.loop | эпоха 0 шаг 120 | loss=4.5414
+2026-10-14 02:26:47,816 | INFO    | eguard.training.loop | эпоха 0 шаг 140 | loss=4.7365
+2026-10-14 02:27:05,125 | INFO    | eguard.training.loop | эпоха 0 шаг 160 | loss=4.6111
+2026-10-14 02:27:21,392 | INFO    | eguard.training.loop | эпоха 0 шаг 180 | loss=4.4447
+2026-10-14 02:27:38,739 | INFO    | eguard.training.loop | эпоха 0 шаг 200 | loss=4.3962
+2026-10-14 02:27:46,327 | INFO    | eguard.training.loop | шаг 200 | val AUROC=0.9036 TPR@FPR=0.3930 FPR=0.0777 FNR=0.2940
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.47it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.46it/s]
+2026-10-14 02:27:46,562 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-joint/checkpoint
+2026-10-14 02:28:02,036 | INFO    | eguard.training.loop | эпоха 0 шаг 220 | loss=4.3613
+2026-10-14 02:28:17,599 | INFO    | eguard.training.loop | эпоха 0 шаг 240 | loss=4.5810
+2026-10-14 02:28:35,177 | INFO    | eguard.training.loop | эпоха 0 шаг 260 | loss=4.1600
+2026-10-14 02:28:51,646 | INFO    | eguard.training.loop | эпоха 0 шаг 280 | loss=3.9760
+2026-10-14 02:29:09,143 | INFO    | eguard.training.loop | эпоха 0 шаг 300 | loss=4.1090
+2026-10-14 02:29:25,488 | INFO    | eguard.training.loop | эпоха 0 шаг 320 | loss=4.1995
+2026-10-14 02:29:42,489 | INFO    | eguard.training.loop | эпоха 0 шаг 340 | loss=4.1770
+2026-10-14 02:29:58,157 | INFO    | eguard.training.loop | эпоха 0 шаг 360 | loss=4.2333
+2026-10-14 02:30:14,414 | INFO    | eguard.training.loop | эпоха 0 шаг 380 | loss=4.1400
+2026-10-14 02:30:30,456 | INFO    | eguard.training.loop | эпоха 0 шаг 400 | loss=4.1669
+2026-10-14 02:30:39,260 | INFO    | eguard.training.loop | шаг 400 | val AUROC=0.9497 TPR@FPR=0.6369 FPR=0.0751 FNR=0.1567
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.14it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.13it/s]
+2026-10-14 02:30:39,511 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-joint/checkpoint
+2026-10-14 02:30:54,126 | INFO    | eguard.training.loop | эпоха 0 шаг 420 | loss=3.8206
+2026-10-14 02:31:12,336 | INFO    | eguard.training.loop | эпоха 0 шаг 440 | loss=4.2115
+2026-10-14 02:31:27,705 | INFO    | eguard.training.loop | эпоха 0 шаг 460 | loss=3.8421
+2026-10-14 02:31:45,412 | INFO    | eguard.training.loop | эпоха 0 шаг 480 | loss=4.2126
+2026-10-14 02:32:01,426 | INFO    | eguard.training.loop | эпоха 0 шаг 500 | loss=3.9871
+2026-10-14 02:32:18,598 | INFO    | eguard.training.loop | эпоха 0 шаг 520 | loss=4.1764
+2026-10-14 02:32:34,535 | INFO    | eguard.training.loop | эпоха 0 шаг 540 | loss=4.0196
+2026-10-14 02:32:51,524 | INFO    | eguard.training.loop | эпоха 0 шаг 560 | loss=3.7431
+2026-10-14 02:33:08,017 | INFO    | eguard.training.loop | эпоха 0 шаг 580 | loss=4.0525
+2026-10-14 02:33:24,678 | INFO    | eguard.training.loop | эпоха 0 шаг 600 | loss=3.8715
+2026-10-14 02:33:32,253 | INFO    | eguard.training.loop | шаг 600 | val AUROC=0.9583 TPR@FPR=0.7023 FPR=0.0638 FNR=0.1470
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.41it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.41it/s]
+2026-10-14 02:33:32,489 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-joint/checkpoint
+2026-10-14 02:33:47,677 | INFO    | eguard.training.loop | эпоха 0 шаг 620 | loss=4.0871
+2026-10-14 02:34:04,602 | INFO    | eguard.training.loop | эпоха 0 шаг 640 | loss=3.7758
+2026-10-14 02:34:20,578 | INFO    | eguard.training.loop | эпоха 0 шаг 660 | loss=3.8225
+2026-10-14 02:34:36,481 | INFO    | eguard.training.loop | эпоха 0 шаг 680 | loss=4.0477
+2026-10-14 02:34:51,297 | INFO    | eguard.training.loop | эпоха 0 шаг 700 | loss=3.6396
+2026-10-14 02:35:08,423 | INFO    | eguard.training.loop | эпоха 0 шаг 720 | loss=3.8844
+2026-10-14 02:35:23,961 | INFO    | eguard.training.loop | эпоха 0 шаг 740 | loss=4.1332
+2026-10-14 02:35:41,565 | INFO    | eguard.training.loop | эпоха 0 шаг 760 | loss=3.8058
+2026-10-14 02:35:58,024 | INFO    | eguard.training.loop | эпоха 0 шаг 780 | loss=3.8363
+2026-10-14 02:36:15,901 | INFO    | eguard.training.loop | эпоха 0 шаг 800 | loss=4.0292
+2026-10-14 02:36:23,471 | INFO    | eguard.training.loop | шаг 800 | val AUROC=0.9647 TPR@FPR=0.6821 FPR=0.0629 FNR=0.1321
+2026-10-14 02:36:40,239 | INFO    | eguard.training.loop | эпоха 0 шаг 820 | loss=3.6546
+2026-10-14 02:36:57,443 | INFO    | eguard.training.loop | эпоха 0 шаг 840 | loss=3.9312
+2026-10-14 02:37:13,389 | INFO    | eguard.training.loop | эпоха 0 шаг 860 | loss=3.7740
+2026-10-14 02:37:30,686 | INFO    | eguard.training.loop | эпоха 0 шаг 880 | loss=3.6052
+2026-10-14 02:37:46,408 | INFO    | eguard.training.loop | эпоха 0 шаг 900 | loss=3.7625
+2026-10-14 02:38:03,943 | INFO    | eguard.training.loop | эпоха 0 шаг 920 | loss=4.1123
+2026-10-14 02:38:19,473 | INFO    | eguard.training.loop | эпоха 0 шаг 940 | loss=3.7625
+2026-10-14 02:38:35,916 | INFO    | eguard.training.loop | эпоха 0 шаг 960 | loss=3.6645
+2026-10-14 02:38:51,912 | INFO    | eguard.training.loop | эпоха 0 шаг 980 | loss=3.9384
+2026-10-14 02:39:08,739 | INFO    | eguard.training.loop | эпоха 0 шаг 1000 | loss=3.6957
+2026-10-14 02:39:16,290 | INFO    | eguard.training.loop | шаг 1000 | val AUROC=0.9677 TPR@FPR=0.7395 FPR=0.0573 FNR=0.1276
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.54it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.53it/s]
+2026-10-14 02:39:16,520 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-joint/checkpoint
+2026-10-14 02:39:32,760 | INFO    | eguard.training.loop | эпоха 0 шаг 1020 | loss=3.8866
+2026-10-14 02:39:48,410 | INFO    | eguard.training.loop | эпоха 0 шаг 1040 | loss=3.7625
+2026-10-14 02:40:06,100 | INFO    | eguard.training.loop | эпоха 0 шаг 1060 | loss=3.9302
+2026-10-14 02:40:21,266 | INFO    | eguard.training.loop | эпоха 0 шаг 1080 | loss=3.8975
+2026-10-14 02:40:37,090 | INFO    | eguard.training.loop | эпоха 0 шаг 1100 | loss=3.9835
+2026-10-14 02:40:54,911 | INFO    | eguard.training.loop | эпоха 0 шаг 1120 | loss=3.5919
+2026-10-14 02:41:10,751 | INFO    | eguard.training.loop | эпоха 0 шаг 1140 | loss=3.5883
+2026-10-14 02:41:28,482 | INFO    | eguard.training.loop | эпоха 0 шаг 1160 | loss=3.9944
+2026-10-14 02:41:44,445 | INFO    | eguard.training.loop | эпоха 0 шаг 1180 | loss=3.4319
+2026-10-14 02:42:02,493 | INFO    | eguard.training.loop | эпоха 0 шаг 1200 | loss=3.7490
+2026-10-14 02:42:09,866 | INFO    | eguard.training.loop | шаг 1200 | val AUROC=0.9709 TPR@FPR=0.6955 FPR=0.0698 FNR=0.0985
+2026-10-14 02:42:25,939 | INFO    | eguard.training.loop | эпоха 0 шаг 1220 | loss=3.9688
+2026-10-14 02:42:41,578 | INFO    | eguard.training.loop | эпоха 0 шаг 1240 | loss=3.4776
+2026-10-14 02:42:58,412 | INFO    | eguard.training.loop | эпоха 0 шаг 1260 | loss=3.8198
+2026-10-14 02:43:14,459 | INFO    | eguard.training.loop | эпоха 0 шаг 1280 | loss=3.8734
+2026-10-14 02:43:30,973 | INFO    | eguard.training.loop | эпоха 0 шаг 1300 | loss=3.6917
+2026-10-14 02:43:46,037 | INFO    | eguard.training.loop | эпоха 0 шаг 1320 | loss=3.6586
+2026-10-14 02:44:02,871 | INFO    | eguard.training.loop | эпоха 0 шаг 1340 | loss=3.4918
+2026-10-14 02:44:13,339 | INFO    | eguard.training.loop | шаг 1344 | val AUROC=0.9709 TPR@FPR=0.7092 FPR=0.1124 FNR=0.0634
+2026-10-14 02:44:26,099 | INFO    | eguard.training.loop | эпоха 1 шаг 1360 | loss=3.8331
+2026-10-14 02:44:43,741 | INFO    | eguard.training.loop | эпоха 1 шаг 1380 | loss=3.7922
+2026-10-14 02:44:59,320 | INFO    | eguard.training.loop | эпоха 1 шаг 1400 | loss=3.3646
+2026-10-14 02:45:06,842 | INFO    | eguard.training.loop | шаг 1400 | val AUROC=0.9715 TPR@FPR=0.7318 FPR=0.0738 FNR=0.0941
+2026-10-14 02:45:25,306 | INFO    | eguard.training.loop | эпоха 1 шаг 1420 | loss=3.7794
+2026-10-14 02:45:41,099 | INFO    | eguard.training.loop | эпоха 1 шаг 1440 | loss=3.5736
+2026-10-14 02:45:58,809 | INFO    | eguard.training.loop | эпоха 1 шаг 1460 | loss=3.5272
+2026-10-14 02:46:14,028 | INFO    | eguard.training.loop | эпоха 1 шаг 1480 | loss=3.5962
+2026-10-14 02:46:32,074 | INFO    | eguard.training.loop | эпоха 1 шаг 1500 | loss=3.3504
+2026-10-14 02:46:48,076 | INFO    | eguard.training.loop | эпоха 1 шаг 1520 | loss=3.8613
+2026-10-14 02:47:05,571 | INFO    | eguard.training.loop | эпоха 1 шаг 1540 | loss=3.8349
+2026-10-14 02:47:21,881 | INFO    | eguard.training.loop | эпоха 1 шаг 1560 | loss=3.4797
+2026-10-14 02:47:39,971 | INFO    | eguard.training.loop | эпоха 1 шаг 1580 | loss=3.8368
+2026-10-14 02:47:54,817 | INFO    | eguard.training.loop | эпоха 1 шаг 1600 | loss=3.5004
+2026-10-14 02:48:03,977 | INFO    | eguard.training.loop | шаг 1600 | val AUROC=0.9718 TPR@FPR=0.7371 FPR=0.1020 FNR=0.0723
+2026-10-14 02:48:19,903 | INFO    | eguard.training.loop | эпоха 1 шаг 1620 | loss=3.4438
+2026-10-14 02:48:36,697 | INFO    | eguard.training.loop | эпоха 1 шаг 1640 | loss=3.5827
+2026-10-14 02:48:52,932 | INFO    | eguard.training.loop | эпоха 1 шаг 1660 | loss=3.8329
+2026-10-14 02:49:10,574 | INFO    | eguard.training.loop | эпоха 1 шаг 1680 | loss=3.4668
+2026-10-14 02:49:26,200 | INFO    | eguard.training.loop | эпоха 1 шаг 1700 | loss=3.3100
+2026-10-14 02:49:42,227 | INFO    | eguard.training.loop | эпоха 1 шаг 1720 | loss=3.5423
+2026-10-14 02:49:59,858 | INFO    | eguard.training.loop | эпоха 1 шаг 1740 | loss=3.7365
+2026-10-14 02:50:14,774 | INFO    | eguard.training.loop | эпоха 1 шаг 1760 | loss=3.5501
+2026-10-14 02:50:31,947 | INFO    | eguard.training.loop | эпоха 1 шаг 1780 | loss=3.7968
+2026-10-14 02:50:47,221 | INFO    | eguard.training.loop | эпоха 1 шаг 1800 | loss=3.7225
+2026-10-14 02:50:54,693 | INFO    | eguard.training.loop | шаг 1800 | val AUROC=0.9714 TPR@FPR=0.7334 FPR=0.0633 FNR=0.1042
+2026-10-14 02:51:11,424 | INFO    | eguard.training.loop | эпоха 1 шаг 1820 | loss=3.6633
+2026-10-14 02:51:26,738 | INFO    | eguard.training.loop | эпоха 1 шаг 1840 | loss=3.4279
+2026-10-14 02:51:44,262 | INFO    | eguard.training.loop | эпоха 1 шаг 1860 | loss=3.3759
+2026-10-14 02:51:59,316 | INFO    | eguard.training.loop | эпоха 1 шаг 1880 | loss=3.7656
+2026-10-14 02:52:16,135 | INFO    | eguard.training.loop | эпоха 1 шаг 1900 | loss=3.5030
+2026-10-14 02:52:33,162 | INFO    | eguard.training.loop | эпоха 1 шаг 1920 | loss=3.7806
+2026-10-14 02:52:49,291 | INFO    | eguard.training.loop | эпоха 1 шаг 1940 | loss=3.4453
+2026-10-14 02:53:05,161 | INFO    | eguard.training.loop | эпоха 1 шаг 1960 | loss=3.6679
+2026-10-14 02:53:21,832 | INFO    | eguard.training.loop | эпоха 1 шаг 1980 | loss=3.7520
+2026-10-14 02:53:38,548 | INFO    | eguard.training.loop | эпоха 1 шаг 2000 | loss=3.6382
+2026-10-14 02:53:46,042 | INFO    | eguard.training.loop | шаг 2000 | val AUROC=0.9721 TPR@FPR=0.7456 FPR=0.0703 FNR=0.0957
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.55it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.55it/s]
+2026-10-14 02:53:46,271 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-joint/checkpoint
+2026-10-14 02:54:03,770 | INFO    | eguard.training.loop | эпоха 1 шаг 2020 | loss=3.8817
+2026-10-14 02:54:19,188 | INFO    | eguard.training.loop | эпоха 1 шаг 2040 | loss=3.1290
+2026-10-14 02:54:35,565 | INFO    | eguard.training.loop | эпоха 1 шаг 2060 | loss=3.5068
+2026-10-14 02:54:51,077 | INFO    | eguard.training.loop | эпоха 1 шаг 2080 | loss=3.7300
+2026-10-14 02:55:08,840 | INFO    | eguard.training.loop | эпоха 1 шаг 2100 | loss=3.6207
+2026-10-14 02:55:24,578 | INFO    | eguard.training.loop | эпоха 1 шаг 2120 | loss=3.5736
+2026-10-14 02:55:42,021 | INFO    | eguard.training.loop | эпоха 1 шаг 2140 | loss=3.7029
+2026-10-14 02:55:57,246 | INFO    | eguard.training.loop | эпоха 1 шаг 2160 | loss=3.6785
+2026-10-14 02:56:14,230 | INFO    | eguard.training.loop | эпоха 1 шаг 2180 | loss=3.1192
+2026-10-14 02:56:29,341 | INFO    | eguard.training.loop | эпоха 1 шаг 2200 | loss=3.7027
+2026-10-14 02:56:36,774 | INFO    | eguard.training.loop | шаг 2200 | val AUROC=0.9723 TPR@FPR=0.7524 FPR=0.0733 FNR=0.0856
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.72it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.71it/s]
+2026-10-14 02:56:36,994 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-joint/checkpoint
+2026-10-14 02:56:53,983 | INFO    | eguard.training.loop | эпоха 1 шаг 2220 | loss=3.6451
+2026-10-14 02:57:09,478 | INFO    | eguard.training.loop | эпоха 1 шаг 2240 | loss=3.2296
+2026-10-14 02:57:25,765 | INFO    | eguard.training.loop | эпоха 1 шаг 2260 | loss=3.3833
+2026-10-14 02:57:41,005 | INFO    | eguard.training.loop | эпоха 1 шаг 2280 | loss=3.5478
+2026-10-14 02:57:58,552 | INFO    | eguard.training.loop | эпоха 1 шаг 2300 | loss=3.4067
+2026-10-14 02:58:13,168 | INFO    | eguard.training.loop | эпоха 1 шаг 2320 | loss=4.0932
+2026-10-14 02:58:30,733 | INFO    | eguard.training.loop | эпоха 1 шаг 2340 | loss=3.4079
+2026-10-14 02:58:45,579 | INFO    | eguard.training.loop | эпоха 1 шаг 2360 | loss=3.5500
+2026-10-14 02:59:03,229 | INFO    | eguard.training.loop | эпоха 1 шаг 2380 | loss=3.5383
+2026-10-14 02:59:18,975 | INFO    | eguard.training.loop | эпоха 1 шаг 2400 | loss=3.3889
+2026-10-14 02:59:26,468 | INFO    | eguard.training.loop | шаг 2400 | val AUROC=0.9724 TPR@FPR=0.7557 FPR=0.0711 FNR=0.0876
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.59it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.59it/s]
+2026-10-14 02:59:26,695 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-joint/checkpoint
+2026-10-14 02:59:43,301 | INFO    | eguard.training.loop | эпоха 1 шаг 2420 | loss=3.3086
+2026-10-14 02:59:58,755 | INFO    | eguard.training.loop | эпоха 1 шаг 2440 | loss=3.3319
+2026-10-14 03:00:15,143 | INFO    | eguard.training.loop | эпоха 1 шаг 2460 | loss=3.5485
+2026-10-14 03:00:31,085 | INFO    | eguard.training.loop | эпоха 1 шаг 2480 | loss=3.5872
+2026-10-14 03:00:48,063 | INFO    | eguard.training.loop | эпоха 1 шаг 2500 | loss=3.4328
+2026-10-14 03:01:03,607 | INFO    | eguard.training.loop | эпоха 1 шаг 2520 | loss=3.7074
+2026-10-14 03:01:21,191 | INFO    | eguard.training.loop | эпоха 1 шаг 2540 | loss=3.6647
+2026-10-14 03:01:36,769 | INFO    | eguard.training.loop | эпоха 1 шаг 2560 | loss=3.3164
+2026-10-14 03:01:52,506 | INFO    | eguard.training.loop | эпоха 1 шаг 2580 | loss=3.2076
+2026-10-14 03:02:10,313 | INFO    | eguard.training.loop | эпоха 1 шаг 2600 | loss=3.4570
+2026-10-14 03:02:17,674 | INFO    | eguard.training.loop | шаг 2600 | val AUROC=0.9726 TPR@FPR=0.7544 FPR=0.0751 FNR=0.0852
+2026-10-14 03:02:35,282 | INFO    | eguard.training.loop | эпоха 1 шаг 2620 | loss=3.6669
+2026-10-14 03:02:50,544 | INFO    | eguard.training.loop | эпоха 1 шаг 2640 | loss=3.2907
+2026-10-14 03:03:07,202 | INFO    | eguard.training.loop | эпоха 1 шаг 2660 | loss=3.2632
+2026-10-14 03:03:22,318 | INFO    | eguard.training.loop | эпоха 1 шаг 2680 | loss=3.5591
+2026-10-14 03:03:35,790 | INFO    | eguard.training.loop | шаг 2688 | val AUROC=0.9726 TPR@FPR=0.7540 FPR=0.0751 FNR=0.0852
+2026-10-14 03:03:35,797 | INFO    | eguard.training.loop | Готово за 2228.4 c. Лучший шаг 2400: TPR@FPR=0.7557
+2026-10-14 03:03:35,813 | INFO    | train_contrastive | Готово: artifacts/runs_wgm_pure/pure-joint
+
+=== pure-joint ===
+лучший шаг 2400: AUROC=0.9724, TPR@FPR=0.7557
+чекпоинт: artifacts/runs_wgm_pure/pure-joint/checkpoint
+python scripts/08_train_contrastive.py --config configs/rq3_wgm_pure.yaml --objective supcon         --run-name pure-supcon
+2026-10-14 03:03:38,474 | INFO    | train_contrastive | e5-small-v2 | supcon | триплетов=0, текстов=43025 (dataset), val=4781
+2026-10-14 03:03:41,716 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 03:03:41,740 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+2026-10-14 03:03:41,882 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 03:03:41,906 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/tokenizer_config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Ftokenizer_config.json=&etag=%228046d4d4aff4529a10e0ad47043bdabd6304fb58%22 "HTTP/1.1 200 OK"
+2026-10-14 03:03:42,050 | INFO    | httpx | HTTP Request: GET https://huggingface.co/api/models/intfloat/e5-small-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-10-14 03:03:42,193 | INFO    | httpx | HTTP Request: GET https://huggingface.co/api/models/intfloat/e5-small-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-14 03:03:42,338 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 03:03:42,362 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2132.71it/s]
+2026-10-14 03:03:42,697 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 03:03:42,722 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+2026-10-14 03:03:42,878 | INFO    | train_contrastive | Устройство: cuda, голова: False, KL-якорь: False, gradient checkpointing: True
+2026-10-14 03:03:43,762 | INFO    | eguard.training.tracking | MLflow run 7e64446ef8c24750887c8c49b3f191b4 (sqlite:///mlflow.db, experiment=eguard-rq3-wgm-pure)
+[transformers] `use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`.
+2026-10-14 03:03:48,421 | INFO    | eguard.training.loop | эпоха 0 шаг 20 | loss=3.4845
+2026-10-14 03:03:52,512 | INFO    | eguard.training.loop | эпоха 0 шаг 40 | loss=3.4561
+2026-10-14 03:03:56,651 | INFO    | eguard.training.loop | эпоха 0 шаг 60 | loss=3.4537
+2026-10-14 03:04:00,461 | INFO    | eguard.training.loop | эпоха 0 шаг 80 | loss=3.4123
+2026-10-14 03:04:04,492 | INFO    | eguard.training.loop | эпоха 0 шаг 100 | loss=3.4239
+2026-10-14 03:04:08,432 | INFO    | eguard.training.loop | эпоха 0 шаг 120 | loss=3.3971
+2026-10-14 03:04:14,113 | INFO    | eguard.training.loop | эпоха 0 шаг 140 | loss=3.3282
+2026-10-14 03:04:17,966 | INFO    | eguard.training.loop | эпоха 0 шаг 160 | loss=3.3002
+2026-10-14 03:04:21,535 | INFO    | eguard.training.loop | эпоха 0 шаг 180 | loss=3.5248
+2026-10-14 03:04:25,333 | INFO    | eguard.training.loop | эпоха 0 шаг 200 | loss=3.3605
+2026-10-14 03:04:34,369 | INFO    | eguard.training.loop | шаг 200 | val AUROC=0.9345 TPR@FPR=0.4887 FPR=0.1367 FNR=0.1490
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.52it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.51it/s]
+2026-10-14 03:04:34,564 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon/checkpoint
+2026-10-14 03:04:38,434 | INFO    | eguard.training.loop | эпоха 0 шаг 220 | loss=3.2739
+2026-10-14 03:04:42,165 | INFO    | eguard.training.loop | эпоха 0 шаг 240 | loss=3.1404
+2026-10-14 03:04:45,913 | INFO    | eguard.training.loop | эпоха 0 шаг 260 | loss=3.3369
+2026-10-14 03:04:51,418 | INFO    | eguard.training.loop | эпоха 0 шаг 280 | loss=3.2912
+2026-10-14 03:04:55,196 | INFO    | eguard.training.loop | эпоха 0 шаг 300 | loss=3.2797
+2026-10-14 03:04:59,377 | INFO    | eguard.training.loop | эпоха 0 шаг 320 | loss=3.1767
+2026-10-14 03:05:03,527 | INFO    | eguard.training.loop | эпоха 0 шаг 340 | loss=3.1706
+2026-10-14 03:05:07,302 | INFO    | eguard.training.loop | эпоха 0 шаг 360 | loss=3.1873
+2026-10-14 03:05:11,390 | INFO    | eguard.training.loop | эпоха 0 шаг 380 | loss=3.2594
+2026-10-14 03:05:15,666 | INFO    | eguard.training.loop | эпоха 0 шаг 400 | loss=3.2899
+2026-10-14 03:05:26,109 | INFO    | eguard.training.loop | шаг 400 | val AUROC=0.9558 TPR@FPR=0.6216 FPR=0.0646 FNR=0.1498
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.73it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.73it/s]
+2026-10-14 03:05:26,330 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon/checkpoint
+2026-10-14 03:05:30,287 | INFO    | eguard.training.loop | эпоха 0 шаг 420 | loss=3.3115
+2026-10-14 03:05:34,055 | INFO    | eguard.training.loop | эпоха 0 шаг 440 | loss=3.3733
+2026-10-14 03:05:37,778 | INFO    | eguard.training.loop | эпоха 0 шаг 460 | loss=3.2391
+2026-10-14 03:05:41,860 | INFO    | eguard.training.loop | эпоха 0 шаг 480 | loss=3.1064
+2026-10-14 03:05:46,091 | INFO    | eguard.training.loop | эпоха 0 шаг 500 | loss=3.2966
+2026-10-14 03:05:50,085 | INFO    | eguard.training.loop | эпоха 0 шаг 520 | loss=3.2968
+2026-10-14 03:05:55,623 | INFO    | eguard.training.loop | эпоха 0 шаг 540 | loss=2.8865
+2026-10-14 03:05:59,789 | INFO    | eguard.training.loop | эпоха 0 шаг 560 | loss=3.1097
+2026-10-14 03:06:04,036 | INFO    | eguard.training.loop | эпоха 0 шаг 580 | loss=3.1080
+2026-10-14 03:06:07,910 | INFO    | eguard.training.loop | эпоха 0 шаг 600 | loss=3.2241
+2026-10-14 03:06:16,903 | INFO    | eguard.training.loop | шаг 600 | val AUROC=0.9609 TPR@FPR=0.6595 FPR=0.0534 FNR=0.1511
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.11it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.10it/s]
+2026-10-14 03:06:17,109 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon/checkpoint
+2026-10-14 03:06:20,657 | INFO    | eguard.training.loop | эпоха 0 шаг 620 | loss=3.0504
+2026-10-14 03:06:25,006 | INFO    | eguard.training.loop | эпоха 0 шаг 640 | loss=3.1412
+2026-10-14 03:06:30,388 | INFO    | eguard.training.loop | эпоха 0 шаг 660 | loss=3.0956
+2026-10-14 03:06:34,510 | INFO    | eguard.training.loop | эпоха 0 шаг 680 | loss=3.1423
+2026-10-14 03:06:38,542 | INFO    | eguard.training.loop | эпоха 0 шаг 700 | loss=3.0274
+2026-10-14 03:06:42,492 | INFO    | eguard.training.loop | эпоха 0 шаг 720 | loss=3.1133
+2026-10-14 03:06:46,430 | INFO    | eguard.training.loop | эпоха 0 шаг 740 | loss=2.9744
+2026-10-14 03:06:50,412 | INFO    | eguard.training.loop | эпоха 0 шаг 760 | loss=3.2029
+2026-10-14 03:06:54,511 | INFO    | eguard.training.loop | эпоха 0 шаг 780 | loss=3.0957
+2026-10-14 03:06:58,904 | INFO    | eguard.training.loop | эпоха 0 шаг 800 | loss=3.1547
+2026-10-14 03:07:09,578 | INFO    | eguard.training.loop | шаг 800 | val AUROC=0.9688 TPR@FPR=0.6850 FPR=0.0924 FNR=0.0889
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.92it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.92it/s]
+2026-10-14 03:07:09,791 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon/checkpoint
+2026-10-14 03:07:14,004 | INFO    | eguard.training.loop | эпоха 0 шаг 820 | loss=3.1963
+2026-10-14 03:07:18,142 | INFO    | eguard.training.loop | эпоха 0 шаг 840 | loss=3.0335
+2026-10-14 03:07:22,398 | INFO    | eguard.training.loop | эпоха 0 шаг 860 | loss=3.0277
+2026-10-14 03:07:26,214 | INFO    | eguard.training.loop | эпоха 0 шаг 880 | loss=3.0729
+2026-10-14 03:07:30,309 | INFO    | eguard.training.loop | эпоха 0 шаг 900 | loss=2.9868
+2026-10-14 03:07:34,016 | INFO    | eguard.training.loop | эпоха 0 шаг 920 | loss=3.0004
+2026-10-14 03:07:39,459 | INFO    | eguard.training.loop | эпоха 0 шаг 940 | loss=3.0693
+2026-10-14 03:07:43,634 | INFO    | eguard.training.loop | эпоха 0 шаг 960 | loss=3.0751
+2026-10-14 03:07:47,909 | INFO    | eguard.training.loop | эпоха 0 шаг 980 | loss=3.2516
+2026-10-14 03:07:52,063 | INFO    | eguard.training.loop | эпоха 0 шаг 1000 | loss=3.0329
+2026-10-14 03:08:00,935 | INFO    | eguard.training.loop | шаг 1000 | val AUROC=0.9699 TPR@FPR=0.7157 FPR=0.0733 FNR=0.1022
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.59it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.59it/s]
+2026-10-14 03:08:01,163 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon/checkpoint
+2026-10-14 03:08:04,914 | INFO    | eguard.training.loop | эпоха 0 шаг 1020 | loss=3.0751
+2026-10-14 03:08:10,537 | INFO    | eguard.training.loop | эпоха 0 шаг 1040 | loss=3.1420
+2026-10-14 03:08:14,648 | INFO    | eguard.training.loop | эпоха 0 шаг 1060 | loss=3.0362
+2026-10-14 03:08:18,910 | INFO    | eguard.training.loop | эпоха 0 шаг 1080 | loss=3.0539
+2026-10-14 03:08:23,082 | INFO    | eguard.training.loop | эпоха 0 шаг 1100 | loss=3.2124
+2026-10-14 03:08:26,952 | INFO    | eguard.training.loop | эпоха 0 шаг 1120 | loss=2.8756
+2026-10-14 03:08:30,655 | INFO    | eguard.training.loop | эпоха 0 шаг 1140 | loss=3.0632
+2026-10-14 03:08:34,502 | INFO    | eguard.training.loop | эпоха 0 шаг 1160 | loss=3.0701
+2026-10-14 03:08:38,381 | INFO    | eguard.training.loop | эпоха 0 шаг 1180 | loss=3.3714
+2026-10-14 03:08:44,203 | INFO    | eguard.training.loop | эпоха 0 шаг 1200 | loss=2.8655
+2026-10-14 03:08:53,525 | INFO    | eguard.training.loop | шаг 1200 | val AUROC=0.9730 TPR@FPR=0.7056 FPR=0.0677 FNR=0.1018
+2026-10-14 03:08:57,607 | INFO    | eguard.training.loop | эпоха 0 шаг 1220 | loss=3.1704
+2026-10-14 03:09:01,324 | INFO    | eguard.training.loop | эпоха 0 шаг 1240 | loss=2.9151
+2026-10-14 03:09:04,749 | INFO    | eguard.training.loop | эпоха 0 шаг 1260 | loss=3.1891
+2026-10-14 03:09:08,471 | INFO    | eguard.training.loop | эпоха 0 шаг 1280 | loss=3.1035
+2026-10-14 03:09:12,027 | INFO    | eguard.training.loop | эпоха 0 шаг 1300 | loss=3.0680
+2026-10-14 03:09:16,290 | INFO    | eguard.training.loop | эпоха 0 шаг 1320 | loss=3.0778
+2026-10-14 03:09:22,164 | INFO    | eguard.training.loop | эпоха 0 шаг 1340 | loss=3.0470
+2026-10-14 03:09:31,807 | INFO    | eguard.training.loop | шаг 1344 | val AUROC=0.9738 TPR@FPR=0.7322 FPR=0.0798 FNR=0.0860
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.15it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.15it/s]
+2026-10-14 03:09:32,011 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon/checkpoint
+2026-10-14 03:09:34,860 | INFO    | eguard.training.loop | эпоха 1 шаг 1360 | loss=3.1337
+2026-10-14 03:09:38,413 | INFO    | eguard.training.loop | эпоха 1 шаг 1380 | loss=3.1863
+2026-10-14 03:09:42,228 | INFO    | eguard.training.loop | эпоха 1 шаг 1400 | loss=3.2089
+2026-10-14 03:09:52,932 | INFO    | eguard.training.loop | шаг 1400 | val AUROC=0.9729 TPR@FPR=0.7468 FPR=0.0512 FNR=0.1159
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.91it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.91it/s]
+2026-10-14 03:09:53,145 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon/checkpoint
+2026-10-14 03:09:56,671 | INFO    | eguard.training.loop | эпоха 1 шаг 1420 | loss=2.9093
+2026-10-14 03:10:00,557 | INFO    | eguard.training.loop | эпоха 1 шаг 1440 | loss=3.1624
+2026-10-14 03:10:04,958 | INFO    | eguard.training.loop | эпоха 1 шаг 1460 | loss=3.0531
+2026-10-14 03:10:08,965 | INFO    | eguard.training.loop | эпоха 1 шаг 1480 | loss=2.8934
+2026-10-14 03:10:13,318 | INFO    | eguard.training.loop | эпоха 1 шаг 1500 | loss=3.1559
+2026-10-14 03:10:17,442 | INFO    | eguard.training.loop | эпоха 1 шаг 1520 | loss=2.9067
+2026-10-14 03:10:21,623 | INFO    | eguard.training.loop | эпоха 1 шаг 1540 | loss=3.3571
+2026-10-14 03:10:26,931 | INFO    | eguard.training.loop | эпоха 1 шаг 1560 | loss=3.0893
+2026-10-14 03:10:31,140 | INFO    | eguard.training.loop | эпоха 1 шаг 1580 | loss=2.8798
+2026-10-14 03:10:35,062 | INFO    | eguard.training.loop | эпоха 1 шаг 1600 | loss=2.9636
+2026-10-14 03:10:43,836 | INFO    | eguard.training.loop | шаг 1600 | val AUROC=0.9747 TPR@FPR=0.7516 FPR=0.0725 FNR=0.0917
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.99it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.99it/s]
+2026-10-14 03:10:44,045 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon/checkpoint
+2026-10-14 03:10:48,085 | INFO    | eguard.training.loop | эпоха 1 шаг 1620 | loss=3.1844
+2026-10-14 03:10:51,774 | INFO    | eguard.training.loop | эпоха 1 шаг 1640 | loss=2.8204
+2026-10-14 03:10:55,596 | INFO    | eguard.training.loop | эпоха 1 шаг 1660 | loss=2.8775
+2026-10-14 03:11:01,451 | INFO    | eguard.training.loop | эпоха 1 шаг 1680 | loss=2.8851
+2026-10-14 03:11:05,835 | INFO    | eguard.training.loop | эпоха 1 шаг 1700 | loss=2.9854
+2026-10-14 03:11:09,433 | INFO    | eguard.training.loop | эпоха 1 шаг 1720 | loss=2.8912
+2026-10-14 03:11:13,509 | INFO    | eguard.training.loop | эпоха 1 шаг 1740 | loss=3.0249
+2026-10-14 03:11:17,335 | INFO    | eguard.training.loop | эпоха 1 шаг 1760 | loss=3.0410
+2026-10-14 03:11:21,574 | INFO    | eguard.training.loop | эпоха 1 шаг 1780 | loss=3.1546
+2026-10-14 03:11:25,273 | INFO    | eguard.training.loop | эпоха 1 шаг 1800 | loss=3.0545
+2026-10-14 03:11:35,862 | INFO    | eguard.training.loop | шаг 1800 | val AUROC=0.9741 TPR@FPR=0.7492 FPR=0.0599 FNR=0.1046
+2026-10-14 03:11:39,907 | INFO    | eguard.training.loop | эпоха 1 шаг 1820 | loss=2.9523
+2026-10-14 03:11:43,741 | INFO    | eguard.training.loop | эпоха 1 шаг 1840 | loss=3.0091
+2026-10-14 03:11:47,729 | INFO    | eguard.training.loop | эпоха 1 шаг 1860 | loss=3.0488
+2026-10-14 03:11:51,548 | INFO    | eguard.training.loop | эпоха 1 шаг 1880 | loss=2.8662
+2026-10-14 03:11:55,386 | INFO    | eguard.training.loop | эпоха 1 шаг 1900 | loss=3.1208
+2026-10-14 03:11:59,360 | INFO    | eguard.training.loop | эпоха 1 шаг 1920 | loss=2.8795
+2026-10-14 03:12:03,385 | INFO    | eguard.training.loop | эпоха 1 шаг 1940 | loss=2.9795
+2026-10-14 03:12:08,860 | INFO    | eguard.training.loop | эпоха 1 шаг 1960 | loss=2.8899
+2026-10-14 03:12:12,547 | INFO    | eguard.training.loop | эпоха 1 шаг 1980 | loss=2.8033
+2026-10-14 03:12:16,582 | INFO    | eguard.training.loop | эпоха 1 шаг 2000 | loss=3.0651
+2026-10-14 03:12:25,424 | INFO    | eguard.training.loop | шаг 2000 | val AUROC=0.9754 TPR@FPR=0.7557 FPR=0.0685 FNR=0.0848
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.25it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.24it/s]
+2026-10-14 03:12:25,623 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon/checkpoint
+2026-10-14 03:12:29,270 | INFO    | eguard.training.loop | эпоха 1 шаг 2020 | loss=2.9925
+2026-10-14 03:12:32,870 | INFO    | eguard.training.loop | эпоха 1 шаг 2040 | loss=3.2991
+2026-10-14 03:12:36,868 | INFO    | eguard.training.loop | эпоха 1 шаг 2060 | loss=3.1619
+2026-10-14 03:12:42,530 | INFO    | eguard.training.loop | эпоха 1 шаг 2080 | loss=2.9084
+2026-10-14 03:12:46,499 | INFO    | eguard.training.loop | эпоха 1 шаг 2100 | loss=2.8783
+2026-10-14 03:12:50,366 | INFO    | eguard.training.loop | эпоха 1 шаг 2120 | loss=2.9353
+2026-10-14 03:12:54,606 | INFO    | eguard.training.loop | эпоха 1 шаг 2140 | loss=3.1466
+2026-10-14 03:12:58,692 | INFO    | eguard.training.loop | эпоха 1 шаг 2160 | loss=2.8637
+2026-10-14 03:13:02,786 | INFO    | eguard.training.loop | эпоха 1 шаг 2180 | loss=2.8131
+2026-10-14 03:13:06,903 | INFO    | eguard.training.loop | эпоха 1 шаг 2200 | loss=3.3675
+2026-10-14 03:13:17,676 | INFO    | eguard.training.loop | шаг 2200 | val AUROC=0.9755 TPR@FPR=0.7641 FPR=0.0681 FNR=0.0836
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.87it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.87it/s]
+2026-10-14 03:13:17,890 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon/checkpoint
+2026-10-14 03:13:22,085 | INFO    | eguard.training.loop | эпоха 1 шаг 2220 | loss=3.2389
+2026-10-14 03:13:26,153 | INFO    | eguard.training.loop | эпоха 1 шаг 2240 | loss=2.9133
+2026-10-14 03:13:29,718 | INFO    | eguard.training.loop | эпоха 1 шаг 2260 | loss=3.0023
+2026-10-14 03:13:33,501 | INFO    | eguard.training.loop | эпоха 1 шаг 2280 | loss=3.2209
+2026-10-14 03:13:36,988 | INFO    | eguard.training.loop | эпоха 1 шаг 2300 | loss=2.9388
+2026-10-14 03:13:41,168 | INFO    | eguard.training.loop | эпоха 1 шаг 2320 | loss=3.1245
+2026-10-14 03:13:44,992 | INFO    | eguard.training.loop | эпоха 1 шаг 2340 | loss=3.3682
+2026-10-14 03:13:50,575 | INFO    | eguard.training.loop | эпоха 1 шаг 2360 | loss=2.8095
+2026-10-14 03:13:54,271 | INFO    | eguard.training.loop | эпоха 1 шаг 2380 | loss=2.9983
+2026-10-14 03:13:58,503 | INFO    | eguard.training.loop | эпоха 1 шаг 2400 | loss=3.1736
+2026-10-14 03:14:07,491 | INFO    | eguard.training.loop | шаг 2400 | val AUROC=0.9757 TPR@FPR=0.7649 FPR=0.0629 FNR=0.0905
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.16it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.15it/s]
+2026-10-14 03:14:07,694 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon/checkpoint
+2026-10-14 03:14:11,781 | INFO    | eguard.training.loop | эпоха 1 шаг 2420 | loss=2.9110
+2026-10-14 03:14:15,481 | INFO    | eguard.training.loop | эпоха 1 шаг 2440 | loss=3.1317
+2026-10-14 03:14:19,821 | INFO    | eguard.training.loop | эпоха 1 шаг 2460 | loss=3.0052
+2026-10-14 03:14:25,245 | INFO    | eguard.training.loop | эпоха 1 шаг 2480 | loss=3.1654
+2026-10-14 03:14:29,429 | INFO    | eguard.training.loop | эпоха 1 шаг 2500 | loss=3.1081
+2026-10-14 03:14:33,781 | INFO    | eguard.training.loop | эпоха 1 шаг 2520 | loss=2.9402
+2026-10-14 03:14:37,925 | INFO    | eguard.training.loop | эпоха 1 шаг 2540 | loss=3.0793
+2026-10-14 03:14:41,694 | INFO    | eguard.training.loop | эпоха 1 шаг 2560 | loss=2.8930
+2026-10-14 03:14:45,774 | INFO    | eguard.training.loop | эпоха 1 шаг 2580 | loss=2.9171
+2026-10-14 03:14:50,083 | INFO    | eguard.training.loop | эпоха 1 шаг 2600 | loss=2.9906
+2026-10-14 03:15:00,605 | INFO    | eguard.training.loop | шаг 2600 | val AUROC=0.9762 TPR@FPR=0.7577 FPR=0.0707 FNR=0.0808
+2026-10-14 03:15:04,293 | INFO    | eguard.training.loop | эпоха 1 шаг 2620 | loss=2.9948
+2026-10-14 03:15:08,357 | INFO    | eguard.training.loop | эпоха 1 шаг 2640 | loss=3.0233
+2026-10-14 03:15:12,377 | INFO    | eguard.training.loop | эпоха 1 шаг 2660 | loss=2.8638
+2026-10-14 03:15:15,882 | INFO    | eguard.training.loop | эпоха 1 шаг 2680 | loss=2.8050
+2026-10-14 03:15:26,070 | INFO    | eguard.training.loop | шаг 2688 | val AUROC=0.9762 TPR@FPR=0.7577 FPR=0.0703 FNR=0.0808
+2026-10-14 03:15:26,078 | INFO    | eguard.training.loop | Готово за 671.3 c. Лучший шаг 2400: TPR@FPR=0.7649
+2026-10-14 03:15:26,106 | INFO    | train_contrastive | Готово: artifacts/runs_wgm_pure/pure-supcon
+
+=== pure-supcon ===
+лучший шаг 2400: AUROC=0.9757, TPR@FPR=0.7649
+чекпоинт: artifacts/runs_wgm_pure/pure-supcon/checkpoint
+python scripts/08_train_contrastive.py --config configs/rq3_wgm_pure.yaml --objective supcon_joint   --run-name pure-supcon-joint
+2026-10-14 03:15:28,660 | INFO    | train_contrastive | e5-small-v2 | supcon_joint | триплетов=0, текстов=43025 (dataset), val=4781
+2026-10-14 03:15:31,995 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 03:15:32,019 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+2026-10-14 03:15:32,155 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 03:15:32,180 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/tokenizer_config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Ftokenizer_config.json=&etag=%228046d4d4aff4529a10e0ad47043bdabd6304fb58%22 "HTTP/1.1 200 OK"
+2026-10-14 03:15:32,319 | INFO    | httpx | HTTP Request: GET https://huggingface.co/api/models/intfloat/e5-small-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-10-14 03:15:32,457 | INFO    | httpx | HTTP Request: GET https://huggingface.co/api/models/intfloat/e5-small-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-14 03:15:32,612 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 03:15:32,638 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2272.38it/s]
+2026-10-14 03:15:32,968 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 03:15:32,993 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+2026-10-14 03:15:33,140 | INFO    | train_contrastive | Устройство: cuda, голова: True, KL-якорь: False, gradient checkpointing: True
+2026-10-14 03:15:34,002 | INFO    | eguard.training.tracking | MLflow run 0ef7a45c8c3945699570fbfdf9768d9b (sqlite:///mlflow.db, experiment=eguard-rq3-wgm-pure)
+[transformers] `use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`.
+2026-10-14 03:15:38,641 | INFO    | eguard.training.loop | эпоха 0 шаг 20 | loss=4.1688
+2026-10-14 03:15:42,732 | INFO    | eguard.training.loop | эпоха 0 шаг 40 | loss=4.1791
+2026-10-14 03:15:46,858 | INFO    | eguard.training.loop | эпоха 0 шаг 60 | loss=4.1340
+2026-10-14 03:15:50,667 | INFO    | eguard.training.loop | эпоха 0 шаг 80 | loss=4.0379
+2026-10-14 03:15:54,696 | INFO    | eguard.training.loop | эпоха 0 шаг 100 | loss=4.0206
+2026-10-14 03:15:58,612 | INFO    | eguard.training.loop | эпоха 0 шаг 120 | loss=3.9791
+2026-10-14 03:16:04,443 | INFO    | eguard.training.loop | эпоха 0 шаг 140 | loss=3.8588
+2026-10-14 03:16:08,230 | INFO    | eguard.training.loop | эпоха 0 шаг 160 | loss=3.8162
+2026-10-14 03:16:11,835 | INFO    | eguard.training.loop | эпоха 0 шаг 180 | loss=4.1061
+2026-10-14 03:16:15,612 | INFO    | eguard.training.loop | эпоха 0 шаг 200 | loss=3.8178
+2026-10-14 03:16:23,070 | INFO    | eguard.training.loop | шаг 200 | val AUROC=0.9308 TPR@FPR=0.4742 FPR=0.1328 FNR=0.1616
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.05it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.05it/s]
+2026-10-14 03:16:23,277 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon-joint/checkpoint
+2026-10-14 03:16:27,184 | INFO    | eguard.training.loop | эпоха 0 шаг 220 | loss=3.7398
+2026-10-14 03:16:30,849 | INFO    | eguard.training.loop | эпоха 0 шаг 240 | loss=3.4543
+2026-10-14 03:16:34,633 | INFO    | eguard.training.loop | эпоха 0 шаг 260 | loss=3.8267
+2026-10-14 03:16:40,203 | INFO    | eguard.training.loop | эпоха 0 шаг 280 | loss=3.7308
+2026-10-14 03:16:44,039 | INFO    | eguard.training.loop | эпоха 0 шаг 300 | loss=3.7053
+2026-10-14 03:16:48,176 | INFO    | eguard.training.loop | эпоха 0 шаг 320 | loss=3.5663
+2026-10-14 03:16:52,377 | INFO    | eguard.training.loop | эпоха 0 шаг 340 | loss=3.6143
+2026-10-14 03:16:56,083 | INFO    | eguard.training.loop | эпоха 0 шаг 360 | loss=3.5317
+2026-10-14 03:17:00,219 | INFO    | eguard.training.loop | эпоха 0 шаг 380 | loss=3.4107
+2026-10-14 03:17:04,425 | INFO    | eguard.training.loop | эпоха 0 шаг 400 | loss=3.6756
+2026-10-14 03:17:13,464 | INFO    | eguard.training.loop | шаг 400 | val AUROC=0.9568 TPR@FPR=0.6208 FPR=0.0941 FNR=0.1179
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.87it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.87it/s]
+2026-10-14 03:17:13,678 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon-joint/checkpoint
+2026-10-14 03:17:17,609 | INFO    | eguard.training.loop | эпоха 0 шаг 420 | loss=3.6157
+2026-10-14 03:17:21,383 | INFO    | eguard.training.loop | эпоха 0 шаг 440 | loss=3.8703
+2026-10-14 03:17:25,087 | INFO    | eguard.training.loop | эпоха 0 шаг 460 | loss=3.4839
+2026-10-14 03:17:29,197 | INFO    | eguard.training.loop | эпоха 0 шаг 480 | loss=3.3919
+2026-10-14 03:17:33,357 | INFO    | eguard.training.loop | эпоха 0 шаг 500 | loss=3.7177
+2026-10-14 03:17:37,354 | INFO    | eguard.training.loop | эпоха 0 шаг 520 | loss=3.8236
+2026-10-14 03:17:41,378 | INFO    | eguard.training.loop | эпоха 0 шаг 540 | loss=3.0433
+2026-10-14 03:17:47,206 | INFO    | eguard.training.loop | эпоха 0 шаг 560 | loss=3.3111
+2026-10-14 03:17:51,364 | INFO    | eguard.training.loop | эпоха 0 шаг 580 | loss=3.5271
+2026-10-14 03:17:55,300 | INFO    | eguard.training.loop | эпоха 0 шаг 600 | loss=3.6384
+2026-10-14 03:18:02,752 | INFO    | eguard.training.loop | шаг 600 | val AUROC=0.9630 TPR@FPR=0.6515 FPR=0.0551 FNR=0.1434
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.85it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.84it/s]
+2026-10-14 03:18:02,967 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon-joint/checkpoint
+2026-10-14 03:18:06,506 | INFO    | eguard.training.loop | эпоха 0 шаг 620 | loss=3.2857
+2026-10-14 03:18:10,832 | INFO    | eguard.training.loop | эпоха 0 шаг 640 | loss=3.5051
+2026-10-14 03:18:14,684 | INFO    | eguard.training.loop | эпоха 0 шаг 660 | loss=3.2678
+2026-10-14 03:18:20,374 | INFO    | eguard.training.loop | эпоха 0 шаг 680 | loss=3.4231
+2026-10-14 03:18:24,378 | INFO    | eguard.training.loop | эпоха 0 шаг 700 | loss=3.2631
+2026-10-14 03:18:28,403 | INFO    | eguard.training.loop | эпоха 0 шаг 720 | loss=3.4575
+2026-10-14 03:18:32,383 | INFO    | eguard.training.loop | эпоха 0 шаг 740 | loss=3.0869
+2026-10-14 03:18:36,366 | INFO    | eguard.training.loop | эпоха 0 шаг 760 | loss=3.5573
+2026-10-14 03:18:40,481 | INFO    | eguard.training.loop | эпоха 0 шаг 780 | loss=3.2060
+2026-10-14 03:18:44,864 | INFO    | eguard.training.loop | эпоха 0 шаг 800 | loss=3.2442
+2026-10-14 03:18:53,900 | INFO    | eguard.training.loop | шаг 800 | val AUROC=0.9682 TPR@FPR=0.6850 FPR=0.0837 FNR=0.0872
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.87it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.86it/s]
+2026-10-14 03:18:54,114 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon-joint/checkpoint
+2026-10-14 03:18:58,319 | INFO    | eguard.training.loop | эпоха 0 шаг 820 | loss=3.4997
+2026-10-14 03:19:02,435 | INFO    | eguard.training.loop | эпоха 0 шаг 840 | loss=3.1851
+2026-10-14 03:19:06,738 | INFO    | eguard.training.loop | эпоха 0 шаг 860 | loss=3.1290
+2026-10-14 03:19:10,796 | INFO    | eguard.training.loop | эпоха 0 шаг 880 | loss=3.4550
+2026-10-14 03:19:14,663 | INFO    | eguard.training.loop | эпоха 0 шаг 900 | loss=3.1635
+2026-10-14 03:19:18,363 | INFO    | eguard.training.loop | эпоха 0 шаг 920 | loss=3.1733
+2026-10-14 03:19:22,290 | INFO    | eguard.training.loop | эпоха 0 шаг 940 | loss=3.4026
+2026-10-14 03:19:28,013 | INFO    | eguard.training.loop | эпоха 0 шаг 960 | loss=3.2147
+2026-10-14 03:19:32,284 | INFO    | eguard.training.loop | эпоха 0 шаг 980 | loss=3.6155
+2026-10-14 03:19:36,444 | INFO    | eguard.training.loop | эпоха 0 шаг 1000 | loss=3.1124
+2026-10-14 03:19:43,833 | INFO    | eguard.training.loop | шаг 1000 | val AUROC=0.9700 TPR@FPR=0.6821 FPR=0.0850 FNR=0.0848
+2026-10-14 03:19:47,605 | INFO    | eguard.training.loop | эпоха 0 шаг 1020 | loss=3.3730
+2026-10-14 03:19:51,643 | INFO    | eguard.training.loop | эпоха 0 шаг 1040 | loss=3.4921
+2026-10-14 03:19:55,669 | INFO    | eguard.training.loop | эпоха 0 шаг 1060 | loss=3.4389
+2026-10-14 03:19:59,826 | INFO    | eguard.training.loop | эпоха 0 шаг 1080 | loss=3.1924
+2026-10-14 03:20:04,086 | INFO    | eguard.training.loop | эпоха 0 шаг 1100 | loss=3.4947
+2026-10-14 03:20:07,947 | INFO    | eguard.training.loop | эпоха 0 шаг 1120 | loss=2.9592
+2026-10-14 03:20:11,806 | INFO    | eguard.training.loop | эпоха 0 шаг 1140 | loss=3.1920
+2026-10-14 03:20:18,214 | INFO    | eguard.training.loop | эпоха 0 шаг 1160 | loss=3.2098
+2026-10-14 03:20:22,098 | INFO    | eguard.training.loop | эпоха 0 шаг 1180 | loss=3.8151
+2026-10-14 03:20:26,307 | INFO    | eguard.training.loop | эпоха 0 шаг 1200 | loss=2.9357
+2026-10-14 03:20:33,755 | INFO    | eguard.training.loop | шаг 1200 | val AUROC=0.9718 TPR@FPR=0.6761 FPR=0.0729 FNR=0.0945
+2026-10-14 03:20:37,786 | INFO    | eguard.training.loop | эпоха 0 шаг 1220 | loss=3.4996
+2026-10-14 03:20:41,574 | INFO    | eguard.training.loop | эпоха 0 шаг 1240 | loss=3.1129
+2026-10-14 03:20:45,199 | INFO    | eguard.training.loop | эпоха 0 шаг 1260 | loss=3.5707
+2026-10-14 03:20:48,997 | INFO    | eguard.training.loop | эпоха 0 шаг 1280 | loss=3.4071
+2026-10-14 03:20:54,166 | INFO    | eguard.training.loop | эпоха 0 шаг 1300 | loss=3.3018
+2026-10-14 03:20:58,620 | INFO    | eguard.training.loop | эпоха 0 шаг 1320 | loss=3.2458
+2026-10-14 03:21:02,562 | INFO    | eguard.training.loop | эпоха 0 шаг 1340 | loss=3.2234
+2026-10-14 03:21:10,749 | INFO    | eguard.training.loop | шаг 1344 | val AUROC=0.9735 TPR@FPR=0.7338 FPR=0.0785 FNR=0.0828
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.06it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  5.05it/s]
+2026-10-14 03:21:10,955 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon-joint/checkpoint
+2026-10-14 03:21:13,952 | INFO    | eguard.training.loop | эпоха 1 шаг 1360 | loss=3.4740
+2026-10-14 03:21:17,609 | INFO    | eguard.training.loop | эпоха 1 шаг 1380 | loss=3.3497
+2026-10-14 03:21:21,570 | INFO    | eguard.training.loop | эпоха 1 шаг 1400 | loss=3.5588
+2026-10-14 03:21:30,571 | INFO    | eguard.training.loop | шаг 1400 | val AUROC=0.9728 TPR@FPR=0.7605 FPR=0.0525 FNR=0.1139
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.81it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  4.80it/s]
+2026-10-14 03:21:30,788 | INFO    | eguard.training.model | Чекпоинт сохранён: artifacts/runs_wgm_pure/pure-supcon-joint/checkpoint
+2026-10-14 03:21:34,180 | INFO    | eguard.training.loop | эпоха 1 шаг 1420 | loss=3.0241
+2026-10-14 03:21:38,181 | INFO    | eguard.training.loop | эпоха 1 шаг 1440 | loss=3.3042
+2026-10-14 03:21:42,707 | INFO    | eguard.training.loop | эпоха 1 шаг 1460 | loss=3.1010
+2026-10-14 03:21:46,856 | INFO    | eguard.training.loop | эпоха 1 шаг 1480 | loss=3.1521
+2026-10-14 03:21:51,229 | INFO    | eguard.training.loop | эпоха 1 шаг 1500 | loss=3.2834
+2026-10-14 03:21:55,362 | INFO    | eguard.training.loop | эпоха 1 шаг 1520 | loss=2.9158
+2026-10-14 03:22:00,878 | INFO    | eguard.training.loop | эпоха 1 шаг 1540 | loss=3.8037
+2026-10-14 03:22:04,604 | INFO    | eguard.training.loop | эпоха 1 шаг 1560 | loss=3.1963
+2026-10-14 03:22:08,732 | INFO    | eguard.training.loop | эпоха 1 шаг 1580 | loss=3.0048
+2026-10-14 03:22:12,683 | INFO    | eguard.training.loop | эпоха 1 шаг 1600 | loss=2.9612
+2026-10-14 03:22:20,133 | INFO    | eguard.training.loop | шаг 1600 | val AUROC=0.9735 TPR@FPR=0.7419 FPR=0.0633 FNR=0.1026
+2026-10-14 03:22:24,216 | INFO    | eguard.training.loop | эпоха 1 шаг 1620 | loss=3.4592
+2026-10-14 03:22:27,922 | INFO    | eguard.training.loop | эпоха 1 шаг 1640 | loss=2.9281
+2026-10-14 03:22:33,288 | INFO    | eguard.training.loop | эпоха 1 шаг 1660 | loss=2.9151
+2026-10-14 03:22:37,378 | INFO    | eguard.training.loop | эпоха 1 шаг 1680 | loss=3.0282
+2026-10-14 03:22:41,523 | INFO    | eguard.training.loop | эпоха 1 шаг 1700 | loss=3.0614
+2026-10-14 03:22:45,232 | INFO    | eguard.training.loop | эпоха 1 шаг 1720 | loss=2.9470
+2026-10-14 03:22:49,693 | INFO    | eguard.training.loop | эпоха 1 шаг 1740 | loss=3.0465
+2026-10-14 03:22:53,492 | INFO    | eguard.training.loop | эпоха 1 шаг 1760 | loss=3.2057
+2026-10-14 03:22:57,728 | INFO    | eguard.training.loop | эпоха 1 шаг 1780 | loss=3.4012
+2026-10-14 03:23:01,418 | INFO    | eguard.training.loop | эпоха 1 шаг 1800 | loss=3.2088
+2026-10-14 03:23:10,464 | INFO    | eguard.training.loop | шаг 1800 | val AUROC=0.9736 TPR@FPR=0.7456 FPR=0.0581 FNR=0.1086
+2026-10-14 03:23:14,488 | INFO    | eguard.training.loop | эпоха 1 шаг 1820 | loss=3.0731
+2026-10-14 03:23:18,401 | INFO    | eguard.training.loop | эпоха 1 шаг 1840 | loss=3.2331
+2026-10-14 03:23:22,447 | INFO    | eguard.training.loop | эпоха 1 шаг 1860 | loss=3.1248
+2026-10-14 03:23:26,317 | INFO    | eguard.training.loop | эпоха 1 шаг 1880 | loss=2.9246
+2026-10-14 03:23:30,178 | INFO    | eguard.training.loop | эпоха 1 шаг 1900 | loss=3.2728
+2026-10-14 03:23:34,161 | INFO    | eguard.training.loop | эпоха 1 шаг 1920 | loss=3.0352
+2026-10-14 03:23:38,188 | INFO    | eguard.training.loop | эпоха 1 шаг 1940 | loss=2.9583
+2026-10-14 03:23:43,451 | INFO    | eguard.training.loop | эпоха 1 шаг 1960 | loss=3.1811
+2026-10-14 03:23:47,038 | INFO    | eguard.training.loop | эпоха 1 шаг 1980 | loss=3.0140
+2026-10-14 03:23:51,076 | INFO    | eguard.training.loop | эпоха 1 шаг 2000 | loss=3.2179
+2026-10-14 03:23:58,520 | INFO    | eguard.training.loop | шаг 2000 | val AUROC=0.9749 TPR@FPR=0.7452 FPR=0.0755 FNR=0.0812
+2026-10-14 03:24:02,335 | INFO    | eguard.training.loop | эпоха 1 шаг 2020 | loss=3.1702
+2026-10-14 03:24:05,894 | INFO    | eguard.training.loop | эпоха 1 шаг 2040 | loss=3.5540
+2026-10-14 03:24:09,940 | INFO    | eguard.training.loop | эпоха 1 шаг 2060 | loss=3.5178
+2026-10-14 03:24:15,436 | INFO    | eguard.training.loop | эпоха 1 шаг 2080 | loss=3.2229
+2026-10-14 03:24:19,372 | INFO    | eguard.training.loop | эпоха 1 шаг 2100 | loss=2.9709
+2026-10-14 03:24:23,208 | INFO    | eguard.training.loop | эпоха 1 шаг 2120 | loss=2.9129
+2026-10-14 03:24:27,351 | INFO    | eguard.training.loop | эпоха 1 шаг 2140 | loss=3.3619
+2026-10-14 03:24:31,521 | INFO    | eguard.training.loop | эпоха 1 шаг 2160 | loss=3.0823
+2026-10-14 03:24:35,961 | INFO    | eguard.training.loop | эпоха 1 шаг 2180 | loss=2.8524
+2026-10-14 03:24:39,992 | INFO    | eguard.training.loop | эпоха 1 шаг 2200 | loss=3.6770
+2026-10-14 03:24:47,472 | INFO    | eguard.training.loop | шаг 2200 | val AUROC=0.9744 TPR@FPR=0.7403 FPR=0.0612 FNR=0.0949
+2026-10-14 03:24:51,706 | INFO    | eguard.training.loop | эпоха 1 шаг 2220 | loss=3.2761
+2026-10-14 03:24:55,892 | INFO    | eguard.training.loop | эпоха 1 шаг 2240 | loss=3.1292
+2026-10-14 03:24:59,563 | INFO    | eguard.training.loop | эпоха 1 шаг 2260 | loss=3.0982
+2026-10-14 03:25:05,700 | INFO    | eguard.training.loop | эпоха 1 шаг 2280 | loss=3.5308
+2026-10-14 03:25:09,262 | INFO    | eguard.training.loop | эпоха 1 шаг 2300 | loss=3.2569
+2026-10-14 03:25:13,455 | INFO    | eguard.training.loop | эпоха 1 шаг 2320 | loss=3.2942
+2026-10-14 03:25:17,237 | INFO    | eguard.training.loop | эпоха 1 шаг 2340 | loss=3.6290
+2026-10-14 03:25:21,035 | INFO    | eguard.training.loop | эпоха 1 шаг 2360 | loss=2.8554
+2026-10-14 03:25:24,698 | INFO    | eguard.training.loop | эпоха 1 шаг 2380 | loss=2.9934
+2026-10-14 03:25:28,982 | INFO    | eguard.training.loop | эпоха 1 шаг 2400 | loss=3.6281
+2026-10-14 03:25:38,058 | INFO    | eguard.training.loop | шаг 2400 | val AUROC=0.9751 TPR@FPR=0.7447 FPR=0.0711 FNR=0.0836
+2026-10-14 03:25:42,153 | INFO    | eguard.training.loop | эпоха 1 шаг 2420 | loss=3.0941
+2026-10-14 03:25:45,910 | INFO    | eguard.training.loop | эпоха 1 шаг 2440 | loss=3.3653
+2026-10-14 03:25:50,236 | INFO    | eguard.training.loop | эпоха 1 шаг 2460 | loss=3.4357
+2026-10-14 03:25:54,190 | INFO    | eguard.training.loop | эпоха 1 шаг 2480 | loss=3.6439
+2026-10-14 03:25:58,335 | INFO    | eguard.training.loop | эпоха 1 шаг 2500 | loss=3.3845
+2026-10-14 03:26:02,496 | INFO    | eguard.training.loop | эпоха 1 шаг 2520 | loss=3.1871
+2026-10-14 03:26:06,630 | INFO    | eguard.training.loop | эпоха 1 шаг 2540 | loss=3.1889
+2026-10-14 03:26:11,931 | INFO    | eguard.training.loop | эпоха 1 шаг 2560 | loss=2.9713
+2026-10-14 03:26:16,235 | INFO    | eguard.training.loop | эпоха 1 шаг 2580 | loss=2.9681
+2026-10-14 03:26:20,569 | INFO    | eguard.training.loop | эпоха 1 шаг 2600 | loss=3.1248
+2026-10-14 03:26:28,015 | INFO    | eguard.training.loop | шаг 2600 | val AUROC=0.9752 TPR@FPR=0.7443 FPR=0.0711 FNR=0.0836
+2026-10-14 03:26:31,687 | INFO    | eguard.training.loop | эпоха 1 шаг 2620 | loss=3.1297
+2026-10-14 03:26:35,758 | INFO    | eguard.training.loop | эпоха 1 шаг 2640 | loss=3.3725
+2026-10-14 03:26:39,796 | INFO    | eguard.training.loop | эпоха 1 шаг 2660 | loss=2.9326
+2026-10-14 03:26:44,885 | INFO    | eguard.training.loop | эпоха 1 шаг 2680 | loss=2.8941
+2026-10-14 03:26:53,628 | INFO    | eguard.training.loop | шаг 2688 | val AUROC=0.9751 TPR@FPR=0.7443 FPR=0.0698 FNR=0.0848
+2026-10-14 03:26:53,636 | INFO    | eguard.training.loop | Готово за 648.4 c. Лучший шаг 1400: TPR@FPR=0.7605
+2026-10-14 03:26:53,651 | INFO    | train_contrastive | Готово: artifacts/runs_wgm_pure/pure-supcon-joint
+
+=== pure-supcon-joint ===
+лучший шаг 1400: AUROC=0.9728, TPR@FPR=0.7605
+чекпоинт: artifacts/runs_wgm_pure/pure-supcon-joint/checkpoint
+make lodo-pure
+make[1]: Entering directory '/home/uuu10/projects/HiveTrace/Embedding-level-Guardrails'
+python scripts/09_eval_lodo.py --config configs/rq3_wgm_pure.yaml --ood-config configs/ood_toxicchat.yaml
+2026-10-14 03:26:56,280 | INFO    | eval_lodo | train=43025 val=4781 holdout=1699 ood=2853 (harm_rate holdout=0.444, ood=0.127)
+2026-10-14 03:26:56,280 | INFO    | eval_lodo | === e5-small-v2-frozen ===
+2026-10-14 03:26:58,035 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 03:26:58,058 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+2026-10-14 03:26:58,197 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 03:26:58,220 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/tokenizer_config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Ftokenizer_config.json=&etag=%228046d4d4aff4529a10e0ad47043bdabd6304fb58%22 "HTTP/1.1 200 OK"
+2026-10-14 03:26:58,362 | INFO    | httpx | HTTP Request: GET https://huggingface.co/api/models/intfloat/e5-small-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-10-14 03:26:58,499 | INFO    | httpx | HTTP Request: GET https://huggingface.co/api/models/intfloat/e5-small-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-14 03:26:58,646 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 03:26:58,669 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2266.26it/s]
+2026-10-14 03:26:58,989 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 03:26:59,013 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+2026-10-14 03:28:36,360 | INFO    | eval_lodo | === pure-classification ===
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2173.02it/s]
+2026-10-14 03:28:36,523 | INFO    | eguard.training.model | artifacts/runs_wgm_pure/pure-classification/checkpoint: голова загружена
+2026-10-14 03:30:14,973 | INFO    | eguard.training.tracking | MLflow: дозапись в run c46b60f29bff445485a2b72aee07205f
+2026-10-14 03:30:14,997 | INFO    | eval_lodo | === pure-contrastive ===
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2056.82it/s]
+2026-10-14 03:31:52,748 | INFO    | eguard.training.tracking | MLflow: дозапись в run f170b270bdf648b585971dd9b683c56e
+2026-10-14 03:31:52,769 | INFO    | eval_lodo | === pure-joint ===
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2007.94it/s]
+2026-10-14 03:31:53,057 | INFO    | eguard.training.model | artifacts/runs_wgm_pure/pure-joint/checkpoint: голова загружена
+2026-10-14 03:33:30,901 | INFO    | eguard.training.tracking | MLflow: дозапись в run b15e586f64f34a41bdb15b7ae6a0d0b7
+2026-10-14 03:33:30,921 | INFO    | eval_lodo | === pure-supcon ===
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2032.25it/s]
+2026-10-14 03:35:05,180 | INFO    | eguard.training.tracking | MLflow: дозапись в run 7e64446ef8c24750887c8c49b3f191b4
+2026-10-14 03:35:05,200 | INFO    | eval_lodo | === pure-supcon-joint ===
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2046.16it/s]
+2026-10-14 03:35:05,644 | INFO    | eguard.training.model | artifacts/runs_wgm_pure/pure-supcon-joint/checkpoint: голова загружена
+2026-10-14 03:36:43,819 | INFO    | eguard.training.tracking | MLflow: дозапись в run 0ef7a45c8c3945699570fbfdf9768d9b
+2026-10-14 03:36:43,875 | INFO    | eval_lodo | Готово: results/wgm_pure/rq3/LODO.md
+
+=== Основное сравнение (единый проб) ===
+              model eval_set  auroc  tpr_at_fpr_0.01    fpr    fnr
+ e5-small-v2-frozen  holdout 0.8683           0.3130 0.0159 0.6485
+ e5-small-v2-frozen      ood 0.8826           0.1602 0.0422 0.5497
+pure-classification  holdout 0.9212           0.3952 0.0254 0.4032
+pure-classification      ood 0.9229           0.0856 0.0385 0.4613
+   pure-contrastive  holdout 0.9237           0.3634 0.0222 0.4642
+   pure-contrastive      ood 0.9229           0.3204 0.0289 0.4696
+         pure-joint  holdout 0.9269           0.2971 0.0296 0.3886
+         pure-joint      ood 0.9278           0.2680 0.0253 0.4641
+        pure-supcon  holdout 0.9320           0.4509 0.0222 0.3979
+        pure-supcon      ood 0.9323           0.3398 0.0478 0.3287
+  pure-supcon-joint  holdout 0.9282           0.4854 0.0180 0.3992
+  pure-supcon-joint      ood 0.9304           0.2928 0.0474 0.3453
+make[1]: Leaving directory '/home/uuu10/projects/HiveTrace/Embedding-level-Guardrails'
+make geometry-pure
+make[1]: Entering directory '/home/uuu10/projects/HiveTrace/Embedding-level-Guardrails'
+python scripts/10_embedding_geometry.py --config configs/rq3_wgm_pure.yaml --ood-config configs/ood_toxicchat.yaml
+2026-10-14 03:36:46,377 | INFO    | embedding_geometry | триплетов=1699 (уникальных текстов 1699), holdout=1699, ood=1500
+2026-10-14 03:36:46,378 | INFO    | embedding_geometry | === e5-small-v2-frozen ===
+2026-10-14 03:36:49,172 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 03:36:49,226 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+2026-10-14 03:36:49,373 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 03:36:49,427 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/tokenizer_config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Ftokenizer_config.json=&etag=%228046d4d4aff4529a10e0ad47043bdabd6304fb58%22 "HTTP/1.1 200 OK"
+2026-10-14 03:36:49,575 | INFO    | httpx | HTTP Request: GET https://huggingface.co/api/models/intfloat/e5-small-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-10-14 03:36:49,728 | INFO    | httpx | HTTP Request: GET https://huggingface.co/api/models/intfloat/e5-small-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-14 03:36:49,891 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 03:36:49,920 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2126.42it/s]
+2026-10-14 03:36:50,266 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/intfloat/e5-small-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-10-14 03:36:50,296 | INFO    | httpx | HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/intfloat/e5-small-v2/ffb93f3bd4047442299a41ebb6fa998a38507c52/config.json?%2Fintfloat%2Fe5-small-v2%2Fresolve%2Fmain%2Fconfig.json=&etag=%22c5aba64a4d8f4c631ef0beddc89704232d2e649d%22 "HTTP/1.1 200 OK"
+2026-10-14 03:36:56,016 | INFO    | embedding_geometry | === pure-classification ===
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2301.12it/s]
+2026-10-14 03:36:56,314 | INFO    | eguard.training.model | artifacts/runs_wgm_pure/pure-classification/checkpoint: голова загружена
+2026-10-14 03:37:02,604 | INFO    | eguard.training.tracking | MLflow: дозапись в run c46b60f29bff445485a2b72aee07205f
+2026-10-14 03:37:02,632 | INFO    | embedding_geometry | === pure-contrastive ===
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2228.37it/s]
+2026-10-14 03:37:08,286 | INFO    | eguard.training.tracking | MLflow: дозапись в run f170b270bdf648b585971dd9b683c56e
+2026-10-14 03:37:08,327 | INFO    | embedding_geometry | === pure-joint ===
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2104.23it/s]
+2026-10-14 03:37:08,507 | INFO    | eguard.training.model | artifacts/runs_wgm_pure/pure-joint/checkpoint: голова загружена
+2026-10-14 03:37:13,924 | INFO    | eguard.training.tracking | MLflow: дозапись в run b15e586f64f34a41bdb15b7ae6a0d0b7
+2026-10-14 03:37:13,964 | INFO    | embedding_geometry | === pure-supcon ===
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2001.97it/s]
+2026-10-14 03:37:19,551 | INFO    | eguard.training.tracking | MLflow: дозапись в run 7e64446ef8c24750887c8c49b3f191b4
+2026-10-14 03:37:19,595 | INFO    | embedding_geometry | === pure-supcon-joint ===
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2195.02it/s]
+2026-10-14 03:37:19,875 | INFO    | eguard.training.model | artifacts/runs_wgm_pure/pure-supcon-joint/checkpoint: голова загружена
+2026-10-14 03:37:26,643 | INFO    | eguard.training.tracking | MLflow: дозапись в run 0ef7a45c8c3945699570fbfdf9768d9b
+2026-10-14 03:37:26,713 | INFO    | embedding_geometry | Готово: results/wgm_pure/rq3/GEOMETRY.md
+
+=== Порядок в триплетах ===
+pair_type            adversarial_contrast   all  benign_twin  safe_harm_contrast
+model                                                                           
+e5-small-v2-frozen                    0.1  29.4         78.2                51.5
+pure-classification                  66.7  75.8         83.1                83.8
+pure-contrastive                     84.2  81.5         85.5                78.0
+pure-joint                           80.9  82.0         80.6                83.4
+pure-supcon                          72.1  78.0         78.2                84.0
+pure-supcon-joint                    71.6  77.9         80.6                84.0
+
+=== Геометрия ===
+              model eval_set    n  pc1_share  cos_safe_harm  cos_within_safe  cos_within_harm
+ e5-small-v2-frozen  holdout 1699     0.0707         0.7978           0.7948           0.8074
+ e5-small-v2-frozen      ood 1500     0.0393         0.7718           0.7671           0.7942
+pure-classification  holdout 1699     0.6455        -0.0394           0.6246           0.4038
+pure-classification      ood 1500     0.4432         0.0398           0.4539           0.5739
+   pure-contrastive  holdout 1699     0.2030         0.6217           0.7238           0.6690
+   pure-contrastive      ood 1500     0.1435         0.7028           0.7698           0.7523
+         pure-joint  holdout 1699     0.3281         0.5564           0.7422           0.6506
+         pure-joint      ood 1500     0.2342         0.6511           0.7767           0.7379
+        pure-supcon  holdout 1699     0.8610         0.8099           0.9597           0.9104
+        pure-supcon      ood 1500     0.7119         0.8294           0.9338           0.9430
+  pure-supcon-joint  holdout 1699     0.8176         0.7851           0.9520           0.8896
+  pure-supcon-joint      ood 1500     0.6574         0.8010           0.9296           0.9192
+make[1]: Leaving directory '/home/uuu10/projects/HiveTrace/Embedding-level-Guardrails'

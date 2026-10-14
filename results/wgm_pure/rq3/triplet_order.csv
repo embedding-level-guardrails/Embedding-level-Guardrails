@@ -1,0 +1,25 @@
+model,pair_type,n,frac_positive_closer,mean_margin,caveat
+e5-small-v2-frozen,adversarial_contrast,796,0.0013,-0.0921,
+e5-small-v2-frozen,benign_twin,124,0.7823,0.0128,майнился по близости у исходного e5 — сравнение смещено в его пользу
+e5-small-v2-frozen,safe_harm_contrast,779,0.5148,0.0022,
+e5-small-v2-frozen,all,1699,0.2937,-0.0412,
+pure-classification,adversarial_contrast,796,0.6671,0.263,
+pure-classification,benign_twin,124,0.8306,0.6266,майнился по близости у исходного e5 — сравнение смещено в его пользу
+pure-classification,safe_harm_contrast,779,0.8383,0.6883,
+pure-classification,all,1699,0.7575,0.4845,
+pure-contrastive,adversarial_contrast,796,0.8417,0.1022,
+pure-contrastive,benign_twin,124,0.8548,0.1081,майнился по близости у исходного e5 — сравнение смещено в его пользу
+pure-contrastive,safe_harm_contrast,779,0.7805,0.091,
+pure-contrastive,all,1699,0.8146,0.0975,
+pure-joint,adversarial_contrast,796,0.809,0.1511,
+pure-joint,benign_twin,124,0.8065,0.162,майнился по близости у исходного e5 — сравнение смещено в его пользу
+pure-joint,safe_harm_contrast,779,0.8344,0.168,
+pure-joint,all,1699,0.8205,0.1596,
+pure-supcon,adversarial_contrast,796,0.7211,0.0836,
+pure-supcon,benign_twin,124,0.7823,0.1323,майнился по близости у исходного e5 — сравнение смещено в его пользу
+pure-supcon,safe_harm_contrast,779,0.8395,0.1511,
+pure-supcon,all,1699,0.7799,0.1181,
+pure-supcon-joint,adversarial_contrast,796,0.7161,0.0872,
+pure-supcon-joint,benign_twin,124,0.8065,0.1422,майнился по близости у исходного e5 — сравнение смещено в его пользу
+pure-supcon-joint,safe_harm_contrast,779,0.8395,0.1677,
+pure-supcon-joint,all,1699,0.7793,0.1282,
