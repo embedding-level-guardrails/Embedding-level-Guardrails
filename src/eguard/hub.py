@@ -43,7 +43,12 @@ OBJECTIVE_NAMES = {
     "classification": "cross-entropy (linear head)",
     "contrastive": "InfoNCE (contrastive), no head",
     "joint": "InfoNCE (contrastive) + cross-entropy",
+    "supcon": "Supervised Contrastive (SupCon), no head",
+    "supcon_joint": "Supervised Contrastive (SupCon) + cross-entropy",
 }
+
+PAIR_OBJECTIVES = ("contrastive", "joint")
+SUPCON_OBJECTIVES = ("supcon", "supcon_joint")
 
 
 # --- Сборка папки ------------------------------------------------------------------
@@ -184,11 +189,7 @@ tags:
 A compact encoder intended as a fast **pre-filter** in front of an LLM: it flags likely
 harmful user prompts so that only suspicious ones go to a heavier safety check.
 
-`$base_model` fully fine-tuned with **$objective_name** on $n_pairs triplets built from
-WildGuardMix train (plus HarmBench behaviors, about 1% of the data). Triplets include
-adversarial (jailbreak-style) prompts of both classes, jailbreak-wrapped safe negatives and
-nearest-neighbour "benign twins", so the model is pushed to judge content rather than form.
-Training: $epochs epochs, batch $batch_size, lr $lr, temperature $temperature, single seed.
+$training
 
 ## Usage
 
@@ -212,7 +213,7 @@ $eval_section
 
 ## Data and attribution
 
-Trained on WildGuardMix (`allenai/wildguardmix`, ODC-By) and HarmBench behaviors.
+$attribution
 Evaluated on WildGuardTest and ToxicChat (`lmsys/toxic-chat`).
 Base model: `$base_model` (MIT).
 ''')
@@ -261,8 +262,46 @@ prompts (FNR column).
 ''')
 
 
-def render_model_card(*, repo_id: str, objective: str, base_model: str, n_pairs: int | str,
-                      epochs: int, batch_size: int, lr: float, temperature: float,
+def describe_training(*, objective: str, base_model: str, n_texts: int, n_pairs: int | None,
+                      harmbench: bool, synthetic: bool, epochs: int, batch_size: int, lr: float,
+                      temperature: float, supcon_temperature: float) -> str:
+    """Абзац карточки «как обучена модель» — по фактическим параметрам прогона.
+
+    Карточка не должна приписывать модели данные и лосс другого эксперимента: схема
+    обучения, наличие триплетов, HarmBench и шаблонных текстов берутся из прогона.
+    """
+    name = OBJECTIVE_NAMES.get(objective, objective)
+    if objective in PAIR_OBJECTIVES:
+        data = (f"on {n_pairs:,} triplets (anchor, positive, negative) built from WildGuardMix train. "
+                "Triplets pair adversarial (jailbreak-style) prompts of one class with same-form prompts "
+                "of the other class and add nearest-neighbour hard negatives, so the model is pushed to "
+                "judge content rather than form.")
+    else:
+        data = f"on {n_texts:,} labeled prompts from WildGuardMix train (deduplicated)."
+        if objective in SUPCON_OBJECTIVES:
+            data += (" The supervised contrastive loss pulls together prompts of the same class "
+                     "within a batch and pushes apart prompts of the other class")
+            data += ("; the cross-entropy head is trained jointly on the same batch."
+                     if objective == "supcon_joint" else ".")
+
+    if harmbench or synthetic:
+        extras = [x for x, used in (("HarmBench behaviors", harmbench),
+                                    ("template paraphrases and jailbreak wrappers", synthetic)) if used]
+        purity = "Training data also include " + " and ".join(extras) + "."
+    else:
+        purity = "Only real WildGuardMix prompts are used: no synthetic or template-generated data."
+
+    if objective in SUPCON_OBJECTIVES:
+        temp = f", SupCon temperature {supcon_temperature}"
+    elif objective in PAIR_OBJECTIVES:
+        temp = f", InfoNCE temperature {temperature}"
+    else:
+        temp = ""
+    return (f"`{base_model}` fully fine-tuned with **{name}** {data} {purity}\n"
+            f"Training: {epochs} epochs, batch {batch_size}, lr {lr}{temp}, single seed.")
+
+
+def render_model_card(*, repo_id: str, base_model: str, training: str, harmbench: bool = False,
                       threshold: float | None = None, eval_rows: list[dict] | None = None) -> str:
     """Текст README.md. Секции про голову и оценку — только если они есть."""
     name = repo_id.split("/")[-1]
@@ -276,10 +315,9 @@ def render_model_card(*, repo_id: str, objective: str, base_model: str, n_pairs:
         )
         eval_section = _EVAL_SECTION.substitute(threshold=f"{threshold:.4f}", rows=rows)
 
+    attribution = "Trained on WildGuardMix (`allenai/wildguardmix`, ODC-By)" + \
+        (" and HarmBench behaviors." if harmbench else ".")
     return _CARD.substitute(
-        title=name, base_model=base_model, repo_id=repo_id,
-        objective_name=OBJECTIVE_NAMES.get(objective, objective),
-        n_pairs=f"{n_pairs:,}" if isinstance(n_pairs, int) else n_pairs,
-        epochs=epochs, batch_size=batch_size, lr=lr, temperature=temperature,
-        head_section=head_section, eval_section=eval_section,
+        title=name, base_model=base_model, repo_id=repo_id, training=training,
+        attribution=attribution, head_section=head_section, eval_section=eval_section,
     )

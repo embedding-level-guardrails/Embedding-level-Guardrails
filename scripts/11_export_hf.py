@@ -30,7 +30,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from eguard.analysis.probe import binary_metrics, tpr_at_fpr  # noqa: E402
 from eguard.config import load_config  # noqa: E402
 from eguard.data import load_split  # noqa: E402
-from eguard.hub import assemble_release, compare_with_checkpoint, render_model_card  # noqa: E402
+from eguard.hub import (  # noqa: E402
+    PAIR_OBJECTIVES,
+    assemble_release,
+    compare_with_checkpoint,
+    describe_training,
+    render_model_card,
+)
 from eguard.training import load_checkpoint  # noqa: E402
 from eguard.utils import get_logger  # noqa: E402
 
@@ -65,11 +71,40 @@ def evaluate_head(cfg, ood_cfg, checkpoint: Path, spec, device: str, target_fpr:
     return float(threshold), rows
 
 
-def count_lines(path: Path) -> int | str:
+def count_lines(path: Path) -> int | None:
     if not path.exists():
-        return "about 32.5k"
+        return None
     with open(path, encoding="utf-8") as fh:
         return sum(1 for line in fh if line.strip())
+
+
+def training_facts(cfg, run_dir: Path, objective: str) -> dict:
+    """На каких данных реально учился прогон: число текстов и триплетов, HarmBench, синтетика.
+
+    Источник текстов — из result.json прогона (старые прогоны его не писали — тогда из
+    конфига). Если модель училась только на текстах датасета, данные «чистые» по
+    построению; иначе состав берётся из summary.json набора пар.
+    """
+    result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
+    text_source = result.get("text_source") or cfg.training.get("text_source", "pairs")
+    pairs_dir = Path(cfg.paths.processed) / "pairs" / cfg.pairs.get("name", "")
+    uses_pairs = objective in PAIR_OBJECTIVES
+
+    if text_source == "dataset":
+        n_texts = len(load_split(cfg.paths.processed, cfg.dataset.name, "train"))
+    else:
+        n_texts = count_lines(pairs_dir / "texts_train.jsonl")
+
+    harmbench = synthetic = False
+    if uses_pairs or text_source == "pairs":
+        summary_path = pairs_dir / "summary.json"
+        if not summary_path.exists():
+            raise SystemExit(f"Нет {summary_path}: без него непонятно, на каких данных учился прогон")
+        pairs_cfg = json.loads(summary_path.read_text(encoding="utf-8")).get("config", {})
+        harmbench = bool((pairs_cfg.get("harmbench") or {}).get("train_split"))
+        synthetic = pairs_cfg.get("mode", "sizes") != "coverage"   # старая сборка = шаблонные тексты
+    return {"n_texts": n_texts, "n_pairs": count_lines(pairs_dir / "pairs_train.jsonl") if uses_pairs else None,
+            "harmbench": harmbench, "synthetic": synthetic, "text_source": text_source}
 
 
 def main() -> None:
@@ -110,13 +145,17 @@ def main() -> None:
                                         args.device or cfg.training.get("device", "auto"),
                                         cfg.training.get("target_fpr", 0.01))
 
-    # 3. карточка модели
-    pairs_file = Path(cfg.paths.processed) / "pairs" / cfg.pairs.get("name", "") / "pairs_train.jsonl"
-    card = render_model_card(
-        repo_id=repo_id, objective=objective, base_model=spec.hf_id,
-        n_pairs=count_lines(pairs_file), epochs=trained["epochs"], batch_size=trained["batch_size"],
-        lr=trained["lr"], temperature=trained["temperature"], threshold=threshold, eval_rows=rows,
+    # 3. карточка модели — по фактическим данным и параметрам прогона
+    facts = training_facts(cfg, run_dir, objective)
+    logger.info("Данные прогона: %s", facts)
+    training = describe_training(
+        objective=objective, base_model=spec.hf_id, n_texts=facts["n_texts"], n_pairs=facts["n_pairs"],
+        harmbench=facts["harmbench"], synthetic=facts["synthetic"], epochs=trained["epochs"],
+        batch_size=trained["batch_size"], lr=trained["lr"], temperature=trained["temperature"],
+        supcon_temperature=trained.get("supcon_temperature", 0.07),
     )
+    card = render_model_card(repo_id=repo_id, base_model=spec.hf_id, training=training,
+                             harmbench=facts["harmbench"], threshold=threshold, eval_rows=rows)
     (out / "README.md").write_text(card, encoding="utf-8")
 
     # 4. сверка с исходным чекпоинтом

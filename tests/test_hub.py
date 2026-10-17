@@ -72,14 +72,31 @@ def test_assemble_release_without_head_and_rebuild(tmp_path):
 
 
 def test_model_card_sections():
-    common = dict(repo_id="me/model", base_model="intfloat/e5-small-v2", n_pairs=32538,
-                  epochs=2, batch_size=32, lr=2e-5, temperature=0.05)
     rows = [{"name": "WildGuardTest", "n": 1699, "auroc": 0.925, "tpr": 0.444, "fpr": 0.026, "fnr": 0.403}]
+    card = render_model_card(repo_id="me/model", base_model="intfloat/e5-small-v2", training="TRAINING",
+                             threshold=0.7765, eval_rows=rows)
+    assert "me/model" in card and "0.7765" in card and "head.safetensors" in card and "TRAINING" in card
+    assert "| WildGuardTest | 1,699 | 0.925 |" in card
+    assert "$" not in card                                # все плейсхолдеры подставлены
+    assert "HarmBench" not in card
 
-    joint = render_model_card(objective="joint", threshold=0.7765, eval_rows=rows, **common)
-    assert "me/model" in joint and "0.7765" in joint and "head.safetensors" in joint
-    assert "| WildGuardTest | 1,699 | 0.925 |" in joint
-    assert "$" not in joint                               # все плейсхолдеры подставлены
+    no_head = render_model_card(repo_id="me/model", base_model="b", training="t", harmbench=True)
+    assert "head.safetensors" not in no_head and "## Evaluation" not in no_head
+    assert "HarmBench" in no_head
 
-    contrastive = render_model_card(objective="contrastive", **common)
-    assert "head.safetensors" not in contrastive and "## Evaluation" not in contrastive
+
+def test_training_description_matches_run():
+    """Карточка не должна приписывать модели чужие данные и лосс."""
+    from eguard.hub import describe_training
+
+    common = dict(base_model="e5", epochs=2, batch_size=32, lr=2e-5, temperature=0.05,
+                  supcon_temperature=0.07)
+    supcon = describe_training(objective="supcon_joint", n_texts=43025, n_pairs=None,
+                               harmbench=False, synthetic=False, **common)
+    assert "Supervised Contrastive (SupCon) + cross-entropy" in supcon and "43,025 labeled prompts" in supcon
+    assert "triplets" not in supcon and "HarmBench" not in supcon and "no synthetic" in supcon
+    assert "SupCon temperature 0.07" in supcon
+
+    infonce = describe_training(objective="joint", n_texts=48985, n_pairs=32538,
+                                harmbench=True, synthetic=True, **common)
+    assert "32,538 triplets" in infonce and "HarmBench" in infonce and "InfoNCE temperature 0.05" in infonce
