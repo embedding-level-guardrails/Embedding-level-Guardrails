@@ -3,6 +3,10 @@
     python scripts/13_training_log.py --log rq3_pure.log --config configs/rq3_wgm_pure.yaml
     python scripts/13_training_log.py ... --mlflow-uri sqlite:///mlflow.db   # + компоненты лосса
 
+На машине, где шло обучение, — всё сразу, с архивом для отправки:
+
+    python scripts/13_training_log.py --mlflow-uri sqlite:///mlflow.db --archive artifacts/share/rq3_training.zip
+
 Лог `make rq3-pure` содержит все прогоны подряд вперемешку со служебными строками.
 Скрипт раскладывает его по прогонам и пишет в {paths.results}/rq3/training/:
 
@@ -20,6 +24,10 @@
 Лосс в логе — суммарный. Компоненты (loss_supcon, loss_ce, cos_margin и т.п.) пишутся
 только в MLflow; с --mlflow-uri они подтягиваются по mlflow_run_id из result.json, если
 прогон есть в этой базе (база лежит на машине, где шло обучение).
+
+--archive собирает zip: таблицы и сводку, config_used.json и result.json каждого
+прогона, конфиги, сырой лог, сводку по триплетам и итоговые таблицы оценки. С
+--with-checkpoints добавляются и веса (по ~128 МБ на прогон).
 """
 from __future__ import annotations
 
@@ -27,6 +35,7 @@ import argparse
 import json
 import re
 import sys
+import zipfile
 from pathlib import Path
 
 import pandas as pd
@@ -181,6 +190,10 @@ def main() -> None:
     ap.add_argument("--config", default="configs/rq3_wgm_pure.yaml")
     ap.add_argument("--out", default=None, help="по умолчанию {paths.results}/rq3/training")
     ap.add_argument("--mlflow-uri", default=None, help="база MLflow с прогонами, чтобы добавить компоненты лосса")
+    ap.add_argument("--archive", default=None, help="собрать zip для отправки, например artifacts/share/rq3_training.zip")
+    ap.add_argument("--pairs-config", default="configs/rq2_pairs_wgm_pure.yaml", help="кладётся в архив")
+    ap.add_argument("--ood-config", default="configs/ood_toxicchat.yaml", help="кладётся в архив")
+    ap.add_argument("--with-checkpoints", action="store_true", help="положить в архив и веса (~128 МБ на прогон)")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
@@ -249,6 +262,47 @@ def main() -> None:
 
     (out / "TRAINING.md").write_text("".join(md), encoding="utf-8")
     print(f"Готово: {out}")
+
+    if args.archive:
+        names = [r["run"] for r in runs]
+        n_with_components = sum(
+            1 for name in names
+            if len(pd.read_csv(out / f"{name}_loss.csv", nrows=1).columns) > 3)
+        build_archive(Path(args.archive), out, runs_root, names, cfg, args)
+        print(f"Архив: {args.archive}")
+        print(f"Компоненты лосса из MLflow: {n_with_components} из {len(names)} прогонов"
+              + ("" if n_with_components == len(names) else
+                 " — для остальных их нет в этой базе (запускайте на машине, где шло обучение)"))
+
+
+def build_archive(path: Path, tables: Path, runs_root: Path, names: list[str], cfg, args) -> None:
+    """zip с тем, что нужно для разбора обучения; внутри всё лежит в папке rq3_training/."""
+    results = Path(cfg.paths.results)
+    pairs_results = Path(load_config(args.pairs_config).paths.results) if Path(args.pairs_config).exists() else None
+    entries: list[tuple[Path, str]] = [(f, f"training/{f.name}") for f in sorted(tables.iterdir()) if f.is_file()]
+    for name in names:
+        for f in ("config_used.json", "result.json"):
+            entries.append((runs_root / name / f, f"runs/{name}/{f}"))
+        if args.with_checkpoints:
+            ckpt = runs_root / name / "checkpoint"
+            entries += [(f, f"runs/{name}/checkpoint/{f.name}") for f in sorted(ckpt.iterdir()) if f.is_file()]
+    for f in (args.config, args.pairs_config, args.ood_config):
+        entries.append((Path(f), f"configs/{Path(f).name}"))
+    entries.append((Path(args.log), Path(args.log).name))
+    for f in ([pairs_results / "rq2" / "PAIRS.md"] if pairs_results else []) + \
+             [results / "rq3" / n for n in ("LODO.md", "lodo.csv", "GEOMETRY.md")]:
+        entries.append((f, f.name))
+
+    ensure_dir(path.parent)
+    missing = []
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for src, arc in entries:
+            if src.exists():
+                zf.write(src, f"rq3_training/{arc}")
+            else:
+                missing.append(str(src))
+    if missing:
+        logger.warning("В архив не попали (нет файлов): %s", ", ".join(missing))
 
 
 if __name__ == "__main__":
