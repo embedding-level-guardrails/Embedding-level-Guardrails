@@ -3,6 +3,8 @@ import pandas as pd
 from rq3_training.notebooks.mmbert.build_pairs_v2 import (
     CODE_CATEGORY,
     OTHER_CATEGORY,
+    PERSONA_JAILBREAK,
+    PROMPT_INJECTION_TEMPLATE,
     allocate_by_category,
     build_code_pairs,
     build_paraphrase_pairs,
@@ -10,8 +12,6 @@ from rq3_training.notebooks.mmbert.build_pairs_v2 import (
     build_wrapped_pairs,
     is_jailbreak_like,
     jailbreak_family,
-    PERSONA_JAILBREAK,
-    PROMPT_INJECTION_TEMPLATE,
     prepare_prompt_pool,
     primary_category,
     wrap_with_template,
